@@ -149,6 +149,9 @@ class TestPropertyPlanContract(unittest.TestCase):
             self.assertTrue(output_file.exists())
             payload = json.loads(output_file.read_text(encoding="utf-8"))
             self.assertIn("rooms", payload)
+            status_file = output_file.with_name("plan.status.json")
+            self.assertTrue(status_file.exists())
+            status_file.unlink(missing_ok=True)
 
     def test_cli_writes_assignment_benchmark_for_photo_data_root(self):
         data_root = ROOT / "data"

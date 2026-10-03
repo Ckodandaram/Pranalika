@@ -154,6 +154,12 @@ of openings that have actually been validated. Prototype opening estimates
 remain visible but are reported as blockers rather than being promoted into
 assignment claims.
 
+The CLI also writes a reviewer-facing `<plan>.status.json` artifact by default
+(or to `--status-output`). It summarizes implemented requirements, blocked
+requirements, prioritized next actions, and whether an accuracy claim is
+allowed. Its `diagnostic_only` status is intentional when independent physical
+ground truth is unavailable.
+
 Assignment benchmark artifacts include a versioned `report_provenance` section
 and an `assignment_readiness` decision. Readiness is intentionally false until
 an independent ground-truth manifest is supplied and the confidence,

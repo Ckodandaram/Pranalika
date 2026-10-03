@@ -12,6 +12,7 @@ from property_scan.ground_truth import (
 from property_scan.benchmark_runner import run_assignment_benchmark, validate_assignment_benchmark_report
 from property_scan.pipeline import build_lidar_plan, build_photo_plan, build_video_plan
 from property_scan.common.output_contract import validate_plan_contract
+from property_scan.assignment_status import build_assignment_status
 
 
 def _parse_args() -> argparse.Namespace:
@@ -22,6 +23,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--property-id", default="demo_property", help="Identifier for the output property")
     parser.add_argument("--ground-truth", help="Optional independently measured JSON manifest used to benchmark the generated plan")
     parser.add_argument("--benchmark-output", help="Optional JSON path for the ground-truth comparison report")
+    parser.add_argument("--status-output", help="Optional JSON path for the reviewer-facing assignment status report")
     return parser.parse_args()
 
 
@@ -39,6 +41,10 @@ def main() -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
     print(f"Wrote plan to {output_path}")
+    status_path = Path(args.status_output) if args.status_output else output_path.with_name(f"{output_path.stem}.status.json")
+    status_path.parent.mkdir(parents=True, exist_ok=True)
+    status_path.write_text(json.dumps(build_assignment_status(plan), indent=2), encoding="utf-8")
+    print(f"Wrote assignment status to {status_path}")
     if args.ground_truth:
         report = compare_plan_to_ground_truth(plan, load_ground_truth(args.ground_truth))
         if report["metric_summary"]["metric_count"] == 0:
@@ -60,6 +66,7 @@ def main() -> int:
         if "room geometry quality gate failed" not in readiness["blockers"] and not plan.quality_gates.get("room_geometry", False):
             readiness["blockers"].append("room geometry quality gate failed")
         output_path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
+        status_path.write_text(json.dumps(build_assignment_status(plan), indent=2), encoding="utf-8")
         benchmark_path = Path(args.benchmark_output) if args.benchmark_output else output_path.with_name(f"{output_path.stem}.benchmark.json")
         benchmark_path.parent.mkdir(parents=True, exist_ok=True)
         benchmark_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
