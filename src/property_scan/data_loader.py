@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import struct
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -259,6 +260,37 @@ def confidence_quality_gate(confidence_coverage: float, minimum_coverage: float 
         "coverage": float(confidence_coverage),
         "minimum_coverage": float(minimum_coverage),
         "passed": bool(confidence_coverage >= minimum_coverage),
+    }
+
+
+def estimate_arkitscenes_mesh_ceiling(scan_root: str | Path) -> dict[str, float | bool | str]:
+    """Estimate ARKitScenes room height from optional Z-up reference mesh."""
+    mesh_path = Path(scan_root) / "arkitscenes_mesh.ply"
+    if not mesh_path.exists():
+        return {"available": False, "height_m": 0.0, "source": "none"}
+    data = mesh_path.read_bytes()
+    try:
+        header_end = data.index(b"end_header\n") + len(b"end_header\n")
+        header = data[:header_end].decode("ascii")
+        vertex_count = next(
+            int(line.split()[2])
+            for line in header.splitlines()
+            if line.startswith("element vertex")
+        )
+        heights = [
+            struct.unpack_from("<fff", data, header_end + index * 16)[2]
+            for index in range(vertex_count)
+        ]
+    except (ValueError, UnicodeDecodeError, StopIteration, struct.error):
+        return {"available": False, "height_m": 0.0, "source": "invalid mesh"}
+    if not heights:
+        return {"available": False, "height_m": 0.0, "source": "empty mesh"}
+    floor = float(np.percentile(heights, 5.0))
+    ceiling = float(np.percentile(heights, 95.0))
+    return {
+        "available": bool(ceiling > floor),
+        "height_m": round(max(0.0, ceiling - floor), 4),
+        "source": "ARKitScenes mesh Z extent (5th-95th percentile)",
     }
 
 
@@ -1206,6 +1238,7 @@ def summarize_capture_profile(profile: CaptureProfile, minimum_confidence_covera
         coverage = valid / total if total else 0.0
 
     capture_type = profile.scan_type
+    mesh_ceiling = estimate_arkitscenes_mesh_ceiling(profile.root)
     if capture_type == "floor_only":
         estimated_ceiling_height = max(1.5, min(2.2, depth_range * 0.001 * 0.85 + 0.4))
         floor_area = max(8.0, 8.0 + profile.frame_count / 500.0)
@@ -1220,6 +1253,9 @@ def summarize_capture_profile(profile: CaptureProfile, minimum_confidence_covera
         floor_area = max(9.0, 9.0 + profile.frame_count / 600.0)
 
     notes: list[str] = []
+    if mesh_ceiling["available"]:
+        estimated_ceiling_height = float(mesh_ceiling["height_m"])
+        notes.append(f"ceiling height sourced from {mesh_ceiling['source']}")
     quality = confidence_quality_gate(coverage, minimum_confidence_coverage)
     if not quality["passed"]:
         notes.append(

@@ -45,13 +45,31 @@ def _world_to_camera_to_camera_to_world(
         tuple(rotation[column][row] for column in range(3))
         for row in range(3)
     )
-    trace = sum(inverse_rotation[index][index] for index in range(3))
+    # ARKitScenes uses Z as the upright axis. Pranalika uses Y-up and a
+    # right-handed X/Y/Z frame, so map (x, y, z) to (x, z, -y).
+    axis_map = (
+        (1.0, 0.0, 0.0),
+        (0.0, 0.0, 1.0),
+        (0.0, -1.0, 0.0),
+    )
+    mapped_rotation = tuple(
+        tuple(
+            sum(axis_map[row][inner] * inverse_rotation[inner][outer] * axis_map[column][outer] for inner in range(3) for outer in range(3))
+            for column in range(3)
+        )
+        for row in range(3)
+    )
+    mapped_translation = tuple(
+        sum(axis_map[row][column] * inverse_translation[column] for column in range(3))
+        for row in range(3)
+    )
+    trace = sum(mapped_rotation[index][index] for index in range(3))
     qw = math.sqrt(max(0.0, 1.0 + trace)) * 0.5
     divisor = max(4.0 * qw, 1e-12)
-    qx = (inverse_rotation[2][1] - inverse_rotation[1][2]) / divisor
-    qy = (inverse_rotation[0][2] - inverse_rotation[2][0]) / divisor
-    qz = (inverse_rotation[1][0] - inverse_rotation[0][1]) / divisor
-    return (qx, qy, qz, qw), inverse_translation
+    qx = (mapped_rotation[2][1] - mapped_rotation[1][2]) / divisor
+    qy = (mapped_rotation[0][2] - mapped_rotation[2][0]) / divisor
+    qz = (mapped_rotation[1][0] - mapped_rotation[0][1]) / divisor
+    return (qx, qy, qz, qw), mapped_translation
 
 
 def _read_traj(path: Path) -> list[tuple[float, tuple[float, float, float, float], tuple[float, float, float]]]:
@@ -107,6 +125,9 @@ def convert_capture(
     (destination / "depth").mkdir(parents=True, exist_ok=True)
     (destination / "confidence").mkdir(parents=True, exist_ok=True)
     shutil.copy2(intrinsics_files[0], destination / "arkitscenes_intrinsics.pincam")
+    mesh_files = sorted(source.glob("*_3dod_mesh.ply"))
+    if mesh_files:
+        shutil.copy2(mesh_files[0], destination / "arkitscenes_mesh.ply")
     matrix = _pincam_to_matrix(intrinsics_files[0])
     with (destination / "camera_matrix.csv").open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)

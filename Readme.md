@@ -70,8 +70,10 @@ python -m property_scan --tier photo --input D:\ARKitScenes\normalized\47333188 
 ```
 
 ARKitScenes mesh and laser assets are reference geometry for diagnosing pose, floor, wall, and
-ceiling errors. They do not by themselves validate the assignment's 2 cm opening or 1.5 cm
-ceiling claims.
+ceiling errors. When the adapter preserves `arkitscenes_mesh.ply`, the pilot reports a robust
+5th-to-95th percentile Z-height as mesh-backed ceiling evidence instead of using the old global
+depth-range heuristic. This is still diagnostic reference geometry, not an independent assignment
+measurement. It does not by itself validate the assignment's 2 cm opening or 1.5 cm ceiling claims.
 
 ## Geometry quality gates
 

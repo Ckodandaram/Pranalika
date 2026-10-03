@@ -24,7 +24,7 @@ class ArkitScenesAdapterTests(unittest.TestCase):
 
             self.assertEqual(
                 (output / "odometry.csv").read_text(encoding="utf-8").splitlines()[1],
-                "capture_10.0,1.0,2.0,3.0,0.0,0.0,0.0,1.0",
+                "capture_10.0,1.0,3.0,-2.0,0.0,0.0,0.0,1.0",
             )
             self.assertEqual(
                 (output / "camera_matrix.csv").read_text(encoding="utf-8").splitlines()[0],
