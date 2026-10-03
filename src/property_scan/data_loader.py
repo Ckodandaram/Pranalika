@@ -140,6 +140,16 @@ def _depth_odometry_pairs(
     return pairs, skipped
 
 
+def _confidence_filtered_mask(profile: CaptureProfile, depth_path: Path, depth_mm: np.ndarray) -> tuple[np.ndarray, int]:
+    confidence_path = profile.root / "confidence" / depth_path.name
+    valid = depth_mm > 0
+    if confidence_path.exists():
+        confidence = np.asarray(Image.open(confidence_path))
+        if confidence.shape == depth_mm.shape:
+            valid &= confidence > 0
+    return valid, int(np.count_nonzero(valid))
+
+
 def detect_capture_profile(scan_root: str | Path) -> CaptureProfile:
     root = Path(scan_root)
     if not root.exists():
@@ -246,7 +256,7 @@ def estimate_projected_depth_geometry(profile: CaptureProfile, sample_limit: int
     z_values: list[np.ndarray] = []
     for path in depth_files:
         depth_mm = np.asarray(Image.open(path), dtype=np.float32)
-        valid = depth_mm > 0
+        valid, _ = _confidence_filtered_mask(profile, path, depth_mm)
         if not np.any(valid):
             continue
         rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
@@ -293,6 +303,7 @@ def estimate_translated_depth_geometry(profile: CaptureProfile, sample_limit: in
     if not depth_pose_pairs or not profile.camera_matrix:
         return {
             "registered_point_count": 0,
+            "confidence_filtered_point_count": 0,
             "matched_frame_count": 0,
             "skipped_frame_count": skipped_frames,
             "x_extent_m": 0.0,
@@ -307,6 +318,7 @@ def estimate_translated_depth_geometry(profile: CaptureProfile, sample_limit: in
     if fx <= 0 or fy <= 0:
         return {
             "registered_point_count": 0,
+            "confidence_filtered_point_count": 0,
             "x_extent_m": 0.0,
             "y_extent_m": 0.0,
             "z_extent_m": 0.0,
@@ -317,7 +329,7 @@ def estimate_translated_depth_geometry(profile: CaptureProfile, sample_limit: in
     world_z: list[np.ndarray] = []
     for path, pose in depth_pose_pairs:
         depth_mm = np.asarray(Image.open(path), dtype=np.float32)
-        valid = depth_mm > 0
+        valid, _ = _confidence_filtered_mask(profile, path, depth_mm)
         if not np.any(valid):
             continue
         rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
@@ -344,6 +356,7 @@ def estimate_translated_depth_geometry(profile: CaptureProfile, sample_limit: in
 
     return {
         "registered_point_count": int(sum(values.size for values in world_z)),
+        "confidence_filtered_point_count": int(sum(values.size for values in world_z)),
         "matched_frame_count": len(depth_pose_pairs),
         "skipped_frame_count": skipped_frames,
         "x_extent_m": robust_extent(np.concatenate(world_x)),
@@ -397,7 +410,7 @@ def estimate_pose_registered_depth_geometry(profile: CaptureProfile, sample_limi
     world_z: list[np.ndarray] = []
     for path, pose in depth_pose_pairs:
         depth_mm = np.asarray(Image.open(path), dtype=np.float32)
-        valid = depth_mm > 0
+        valid, _ = _confidence_filtered_mask(profile, path, depth_mm)
         if not np.any(valid):
             continue
         rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
@@ -448,7 +461,7 @@ def estimate_floor_plane_geometry(profile: CaptureProfile, sample_limit: int = 2
     points: list[np.ndarray] = []
     for path, pose in depth_pose_pairs:
         depth_mm = np.asarray(Image.open(path), dtype=np.float32)
-        valid = depth_mm > 0
+        valid, _ = _confidence_filtered_mask(profile, path, depth_mm)
         if not np.any(valid):
             continue
         rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
@@ -530,7 +543,7 @@ def estimate_ransac_floor_plane_geometry(
     point_batches: list[np.ndarray] = []
     for path, pose in depth_pose_pairs:
         depth_mm = np.asarray(Image.open(path), dtype=np.float32)
-        valid = depth_mm > 0
+        valid, _ = _confidence_filtered_mask(profile, path, depth_mm)
         if not np.any(valid):
             continue
         rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
@@ -689,7 +702,7 @@ def estimate_floor_aligned_footprint(
     points: list[np.ndarray] = []
     for path, pose in depth_pose_pairs:
         depth_mm = np.asarray(Image.open(path), dtype=np.float32)
-        valid = depth_mm > 0
+        valid, _ = _confidence_filtered_mask(profile, path, depth_mm)
         if not np.any(valid):
             continue
         rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
