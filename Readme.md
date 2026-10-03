@@ -17,6 +17,18 @@ PYTHONPATH=src python -m property_scan --tier photo --input /path/to/property --
 - a LiDAR pipeline skeleton for depth/pose-driven data
 - a benchmark and capture protocol designed around the assignment
 - a technical report overlaying the architecture and drift strategy
+- a selected-stack strategy grounded in the sample repos: Room-Reconstruction-Demo, RoomPlanDemo, openPlan3D, and COLMAP
+
+## Selected open-source stack
+
+The sample repositories provided in the data folder point to a very specific and practical architecture for this assignment:
+
+- Room-Reconstruction-Demo: photo-tier reconstruction baseline using depth estimation and room reconstruction
+- RoomPlanDemo: LiDAR-tier capture and room geometry reference using Apple RoomPlan
+- openPlan3D: final whole-property editing and room adjacency layer
+- COLMAP: camera pose and sparse reconstruction backbone for photo/video geometry
+
+This repo is intentionally built around that stack rather than a blind "AI model only" approach.
 
 ## Repository structure
 
