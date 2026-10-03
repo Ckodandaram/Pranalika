@@ -1,0 +1,30 @@
+import sys
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from property_scan.data_loader import detect_capture_profile, estimate_projected_depth_geometry, estimate_real_room_geometry
+
+
+class TestDepthGeometry(unittest.TestCase):
+    def test_real_capture_depth_is_projected_using_camera_calibration(self):
+        root = ROOT / "data" / "single_scan_with_ceiling" / "c7d28f72c6"
+        geometry = estimate_projected_depth_geometry(detect_capture_profile(root))
+        self.assertGreater(geometry["projected_point_count"], 0)
+        self.assertGreater(geometry["x_extent_m"], 0.0)
+        self.assertGreater(geometry["y_extent_m"], 0.0)
+        self.assertGreater(geometry["z_extent_m"], 0.0)
+
+    def test_geometry_summary_exposes_projected_depth_diagnostics(self):
+        root = ROOT / "data" / "single_room" / "c00a170fe1"
+        summary = estimate_real_room_geometry(root)
+        self.assertIn("projected_point_count", summary)
+        self.assertGreater(summary["projected_point_count"], 0)
+
+
+if __name__ == "__main__":
+    unittest.main()

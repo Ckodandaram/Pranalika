@@ -171,6 +171,74 @@ class ScanMetrics:
             self.notes = []
 
 
+def estimate_projected_depth_geometry(profile: CaptureProfile, sample_limit: int = 20) -> dict[str, float | int]:
+    """Estimate camera-frame geometry from calibrated depth pixels.
+
+    This is deliberately a diagnostic geometry extraction step. It does not
+    claim to be a room-aligned reconstruction because camera pose alignment and
+    multi-frame registration are still separate stages.
+    """
+    depth_files = sorted((profile.root / "depth").glob("*.png"))[:sample_limit]
+    if not depth_files or not profile.camera_matrix:
+        return {
+            "projected_point_count": 0,
+            "x_extent_m": 0.0,
+            "y_extent_m": 0.0,
+            "z_extent_m": 0.0,
+        }
+
+    fx = profile.camera_matrix[0][0]
+    fy = profile.camera_matrix[1][1]
+    cx = profile.camera_matrix[0][2]
+    cy = profile.camera_matrix[1][2]
+    if fx <= 0 or fy <= 0:
+        return {
+            "projected_point_count": 0,
+            "x_extent_m": 0.0,
+            "y_extent_m": 0.0,
+            "z_extent_m": 0.0,
+        }
+
+    x_values: list[np.ndarray] = []
+    y_values: list[np.ndarray] = []
+    z_values: list[np.ndarray] = []
+    for path in depth_files:
+        depth_mm = np.asarray(Image.open(path), dtype=np.float32)
+        valid = depth_mm > 0
+        if not np.any(valid):
+            continue
+        rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
+        z_m = depth_mm[valid] * 0.001
+        x_m = (columns[valid] - cx) * z_m / fx
+        y_m = (rows[valid] - cy) * z_m / fy
+        x_values.append(x_m)
+        y_values.append(y_m)
+        z_values.append(z_m)
+
+    if not z_values:
+        return {
+            "projected_point_count": 0,
+            "x_extent_m": 0.0,
+            "y_extent_m": 0.0,
+            "z_extent_m": 0.0,
+        }
+
+    x = np.concatenate(x_values)
+    y = np.concatenate(y_values)
+    z = np.concatenate(z_values)
+
+    def robust_extent(values: np.ndarray) -> float:
+        low, high = np.percentile(values, [2.0, 98.0])
+        return float(max(0.0, high - low))
+
+    return {
+        "projected_point_count": int(z.size),
+        "x_extent_m": robust_extent(x),
+        "y_extent_m": robust_extent(y),
+        "z_extent_m": robust_extent(z),
+    }
+
+
 def _safe_image_stats(depth_dir: Path) -> tuple[float, float, float]:
     files = sorted(depth_dir.glob("*.png"))
     if not files:
@@ -249,6 +317,7 @@ def summarize_capture_profile(profile: CaptureProfile) -> ScanMetrics:
 def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str | list[str]]:
     profile = detect_capture_profile(scan_root)
     metrics = summarize_capture_profile(profile)
+    projected_geometry = estimate_projected_depth_geometry(profile)
     return {
         "capture_name": profile.name,
         "scan_type": metrics.capture_type,
@@ -258,6 +327,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
         "confidence_coverage": metrics.confidence_coverage,
         "estimated_floor_area_m2": metrics.estimated_floor_area_m2,
         "estimated_ceiling_height_m": metrics.estimated_ceiling_height_m,
+        **projected_geometry,
         "notes": metrics.notes,
     }
 

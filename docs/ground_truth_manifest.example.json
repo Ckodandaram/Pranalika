@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0.0",
+  "source": "independent survey measurements",
+  "rooms": [
+    {
+      "id": "room_1",
+      "floor_area_m2": 14.5,
+      "ceiling_height_m": 2.7,
+      "wall_lengths_m": [4.0, 3.6, 4.0, 3.6],
+      "openings": [
+        {
+          "id": "door_room_1",
+          "type": "door",
+          "width_m": 0.9,
+          "height_m": 2.05,
+          "location": "south"
+        }
+      ]
+    }
+  ]
+}

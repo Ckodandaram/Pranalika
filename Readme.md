@@ -7,6 +7,7 @@ Pranalika is a starter engineering scaffold for a handheld property-scanning sys
 ```bash
 python -m unittest discover -s tests -v
 PYTHONPATH=src python -m property_scan --tier photo --input /path/to/property --output /tmp/property_plan.json
+PYTHONPATH=src python -m property_scan --tier photo --input /path/to/property --output /tmp/property_plan.json --ground-truth /path/to/ground_truth.json --benchmark-output /tmp/benchmark.json
 ```
 
 ## What is included
@@ -41,3 +42,10 @@ This repo is intentionally built around that stack rather than a blind "AI model
 
 This project is intentionally a practical baseline rather than a full production scanner. The repository establishes the architecture, shared output format, and team execution plan needed for the assignment while remaining honest about the absence of raw benchmark captures in this workspace.
 
+## Independent ground truth
+
+The real captures under `data/` contain sensor inputs, not independently measured labels. Use the
+schema in `docs/ground_truth_manifest.example.json` to provide measured room dimensions and opening
+widths. The CLI compares the generated plan to that manifest using the assignment tolerances and
+writes a separate benchmark report. It fails on room, wall, or opening identity mismatches rather
+than silently scoring an incomplete comparison.
