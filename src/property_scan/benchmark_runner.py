@@ -13,7 +13,9 @@ from property_scan.benchmark import (
 )
 from property_scan.data_loader import (
     confidence_quality_gate,
+    detect_wall_opening_candidates,
     discover_capture_profiles,
+    estimate_vertical_wall_planes,
     estimate_trajectory_consistency,
     summarize_capture_profile,
 )
@@ -174,11 +176,25 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
 
     suite = BenchmarkSuite(cases=cases)
     results = suite.run_all()
+    results["opening_width"]["summary"]["validated_against_independent_ground_truth"] = False
+    results["opening_width"]["summary"]["note"] = (
+        "Proxy comparison only; supply an independent ground-truth manifest "
+        "before claiming the 2 cm assignment result."
+    )
+    opening_evidence = []
     quality = []
     for profile in profiles:
         metrics = summarize_capture_profile(profile)
         trajectory = estimate_trajectory_consistency(profile)
         confidence = confidence_quality_gate(metrics.confidence_coverage)
+        wall_planes = estimate_vertical_wall_planes(profile)
+        candidates = detect_wall_opening_candidates(wall_planes)
+        opening_evidence.append({
+            "capture": profile.name,
+            "candidate_count": len(candidates),
+            "candidate_widths_m": [float(candidate["width_m"]) for candidate in candidates],
+            "candidates": candidates,
+        })
         quality.append({
             "capture": profile.name,
             "confidence_passed": bool(confidence["passed"]),
@@ -197,5 +213,13 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
             "captures": quality,
         },
         "metric_count": len(quality),
+    }
+    results["opening_evidence"] = {
+        "title": "Wall opening reconstruction evidence",
+        "summary": {
+            "validated_against_independent_ground_truth": False,
+            "captures": opening_evidence,
+        },
+        "metric_count": sum(item["candidate_count"] for item in opening_evidence),
     }
     return results

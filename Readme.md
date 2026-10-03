@@ -99,3 +99,8 @@ are accompanied by confidence-coverage and trajectory-consistency gates, and
 `validated_for_accuracy_claims` is false whenever any capture fails either
 gate. This keeps proxy benchmark numbers separate from trustworthy assignment
 claims.
+
+Opening benchmark output is split into `opening_width` and
+`opening_evidence`. The former is a proxy comparison until an independent
+ground-truth manifest is supplied; the latter contains the detected wall-gap
+candidate widths and source intervals for review.
