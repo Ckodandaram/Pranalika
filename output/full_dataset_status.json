@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0.0",
+  "property_id": "demo_property",
+  "capture_tier": "photo",
+  "implemented_requirements": {
+    "shared_output_contract": true,
+    "photo_video_lidar_pipelines": true,
+    "metric_depth_geometry": true,
+    "whole_property_stitching": true,
+    "confidence_and_quality_gates": true,
+    "opening_evidence": true,
+    "independent_ground_truth_comparison": true,
+    "assignment_tolerance_rules": true
+  },
+  "assignment_readiness": {
+    "ready": false,
+    "measurement_claims_validated": false,
+    "quality_gates": {
+      "stitching": true,
+      "room_geometry": false,
+      "independent_ground_truth": false
+    },
+    "opening_summary": {
+      "total_openings": 5,
+      "validated_openings": 0,
+      "validated_fraction": 0.0
+    },
+    "blockers": [
+      "independent ground-truth measurements are required",
+      "room geometry quality gate failed",
+      "opening measurements remain diagnostic estimates"
+    ],
+    "next_action": "collect independent measurements and resolve the listed quality gates"
+  },
+  "blocked_requirements": [
+    {
+      "severity": "critical",
+      "requirement": "assignment accuracy certification",
+      "reason": "the supplied captures do not contain independent physical ground truth",
+      "next_action": "collect measured wall, opening, and ceiling values and rerun the benchmark"
+    },
+    {
+      "severity": "high",
+      "requirement": "metric room geometry",
+      "reason": "room geometry quality gate is not passing for this plan",
+      "next_action": "improve qualified wall-plane coverage and footprint agreement"
+    }
+  ],
+  "accuracy_claim_allowed": false,
+  "overall_status": "diagnostic_only"
+}

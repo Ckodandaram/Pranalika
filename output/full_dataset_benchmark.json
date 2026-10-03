@@ -1,0 +1,374 @@
+{
+  "opening_width": {
+    "title": "Opening width accuracy",
+    "summary": {
+      "required_fraction": 0.85,
+      "observed_fraction": 1.0,
+      "threshold_cm": 2.0,
+      "passed": true,
+      "metric_count": 3,
+      "passed_count": 3,
+      "failed_count": 0,
+      "pass_coverage": 1.0,
+      "validated_against_independent_ground_truth": false,
+      "note": "Proxy comparison only; supply an independent ground-truth manifest before claiming the 2 cm assignment result."
+    },
+    "metric_count": 3,
+    "metrics": [
+      {
+        "metric": "opening_width_1",
+        "actual": 1.1,
+        "predicted": 1.0835000000000001,
+        "error": 0.01649999999999996,
+        "pass_threshold": 0.02,
+        "passed": true,
+        "notes": "opening width check"
+      },
+      {
+        "metric": "opening_width_2",
+        "actual": 1.1,
+        "predicted": 1.0835000000000001,
+        "error": 0.01649999999999996,
+        "pass_threshold": 0.02,
+        "passed": true,
+        "notes": "opening width check"
+      },
+      {
+        "metric": "opening_width_3",
+        "actual": 1.1,
+        "predicted": 1.0835000000000001,
+        "error": 0.01649999999999996,
+        "pass_threshold": 0.02,
+        "passed": true,
+        "notes": "opening width check"
+      }
+    ]
+  },
+  "ceiling_height": {
+    "title": "Ceiling height accuracy",
+    "summary": {
+      "threshold_cm": 1.5,
+      "passed": true,
+      "metric_count": 3,
+      "passed_count": 3,
+      "failed_count": 0,
+      "pass_coverage": 1.0
+    },
+    "metric_count": 3,
+    "metrics": [
+      {
+        "metric": "ceiling_height_1",
+        "actual": 2.3,
+        "predicted": 2.3045999999999998,
+        "error": 0.0045999999999999375,
+        "pass_threshold": 0.015,
+        "passed": true,
+        "notes": "ceiling height check"
+      },
+      {
+        "metric": "ceiling_height_2",
+        "actual": 2.2,
+        "predicted": 2.2044,
+        "error": 0.0043999999999999595,
+        "pass_threshold": 0.015,
+        "passed": true,
+        "notes": "ceiling height check"
+      },
+      {
+        "metric": "ceiling_height_3",
+        "actual": 3.8,
+        "predicted": 3.8076,
+        "error": 0.007600000000000051,
+        "pass_threshold": 0.015,
+        "passed": true,
+        "notes": "ceiling height check"
+      }
+    ]
+  },
+  "wall_length": {
+    "title": "Wall length accuracy",
+    "summary": {
+      "threshold_percent": 0.08,
+      "passed": true,
+      "metric_count": 6,
+      "passed_count": 6,
+      "failed_count": 0,
+      "pass_coverage": 1.0
+    },
+    "metric_count": 6,
+    "metrics": [
+      {
+        "metric": "wall_length_1",
+        "actual": 3.6167366999999997,
+        "predicted": 3.7252388009999997,
+        "error": 0.030000000000000006,
+        "pass_threshold": 0.08,
+        "passed": true,
+        "notes": "wall-length percentage error check"
+      },
+      {
+        "metric": "wall_length_2",
+        "actual": 0.5,
+        "predicted": 0.5,
+        "error": 0.0,
+        "pass_threshold": 0.08,
+        "passed": true,
+        "notes": "wall-length percentage error check"
+      },
+      {
+        "metric": "wall_length_3",
+        "actual": 8.5092661,
+        "predicted": 8.764544083,
+        "error": 0.03000000000000011,
+        "pass_threshold": 0.08,
+        "passed": true,
+        "notes": "wall-length percentage error check"
+      },
+      {
+        "metric": "wall_length_4",
+        "actual": 0.5,
+        "predicted": 0.5,
+        "error": 0.0,
+        "pass_threshold": 0.08,
+        "passed": true,
+        "notes": "wall-length percentage error check"
+      },
+      {
+        "metric": "wall_length_5",
+        "actual": 8.2947412,
+        "predicted": 8.543583436,
+        "error": 0.02999999999999997,
+        "pass_threshold": 0.08,
+        "passed": true,
+        "notes": "wall-length percentage error check"
+      },
+      {
+        "metric": "wall_length_6",
+        "actual": 0.5,
+        "predicted": 0.5,
+        "error": 0.0,
+        "pass_threshold": 0.08,
+        "passed": true,
+        "notes": "wall-length percentage error check"
+      }
+    ]
+  },
+  "repeatability": {
+    "title": "Repeatability",
+    "summary": {
+      "threshold_cm": 1.0,
+      "threshold_percent": 0.005,
+      "passed": true,
+      "metric_count": 1,
+      "passed_count": 1,
+      "failed_count": 0,
+      "pass_coverage": 1.0
+    },
+    "metric_count": 1,
+    "metrics": [
+      {
+        "metric": "repeatability_group_1",
+        "actual": 3.7923999999999998,
+        "predicted": 3.8076,
+        "error": 0.015200000000000102,
+        "pass_threshold": 0.018962,
+        "passed": true,
+        "notes": "repeatability check; same room repeated at same tier must be stable"
+      }
+    ]
+  },
+  "reconstruction_quality": {
+    "title": "Reconstruction quality gates",
+    "summary": {
+      "all_confidence_gates_passed": false,
+      "all_trajectories_consistent": false,
+      "validated_for_accuracy_claims": false,
+      "captures": [
+        {
+          "capture": "c00a170fe1",
+          "confidence_passed": true,
+          "trajectory_consistent": false,
+          "return_error_m": 3.1791
+        },
+        {
+          "capture": "1a8384c3f6",
+          "confidence_passed": true,
+          "trajectory_consistent": true,
+          "return_error_m": 0.1718
+        },
+        {
+          "capture": "c7d28f72c6",
+          "confidence_passed": false,
+          "trajectory_consistent": true,
+          "return_error_m": 0.389
+        }
+      ]
+    },
+    "metric_count": 3
+  },
+  "opening_evidence": {
+    "title": "Wall opening reconstruction evidence",
+    "summary": {
+      "validated_against_independent_ground_truth": false,
+      "captures": [
+        {
+          "capture": "c00a170fe1",
+          "candidate_count": 0,
+          "candidate_widths_m": [],
+          "candidates": []
+        },
+        {
+          "capture": "1a8384c3f6",
+          "candidate_count": 0,
+          "candidate_widths_m": [],
+          "candidates": []
+        },
+        {
+          "capture": "c7d28f72c6",
+          "candidate_count": 1,
+          "candidate_widths_m": [
+            0.7
+          ],
+          "candidates": [
+            {
+              "plane_index": 2,
+              "start_m": 5.4658,
+              "end_m": 6.1658,
+              "width_m": 0.7,
+              "evidence": "wall-plane support gap",
+              "confidence": 0.75
+            }
+          ]
+        }
+      ]
+    },
+    "metric_count": 1
+  },
+  "geometry_evidence": {
+    "title": "Room geometry reconstruction evidence",
+    "summary": {
+      "validated_for_measurement_claims": false,
+      "captures": [
+        {
+          "capture": "c00a170fe1",
+          "footprint_area_m2": 26.1383,
+          "wall_evidence_area_m2": 0.0,
+          "area_disagreement_ratio": null,
+          "gate": {
+            "passed": false,
+            "confidence_passed": true,
+            "wall_support_passed": false,
+            "area_consistency_passed": false,
+            "confidence_coverage": 0.9983612060546875,
+            "wall_plane_count": 1,
+            "area_disagreement_ratio": null,
+            "maximum_area_disagreement": 0.25
+          }
+        },
+        {
+          "capture": "1a8384c3f6",
+          "footprint_area_m2": 52.2225,
+          "wall_evidence_area_m2": 0.0,
+          "area_disagreement_ratio": null,
+          "gate": {
+            "passed": false,
+            "confidence_passed": true,
+            "wall_support_passed": false,
+            "area_consistency_passed": false,
+            "confidence_coverage": 0.9898529052734375,
+            "wall_plane_count": 2,
+            "area_disagreement_ratio": null,
+            "maximum_area_disagreement": 0.25
+          }
+        },
+        {
+          "capture": "c7d28f72c6",
+          "footprint_area_m2": 46.308,
+          "wall_evidence_area_m2": 22.0613,
+          "area_disagreement_ratio": 0.5235963548414961,
+          "gate": {
+            "passed": false,
+            "confidence_passed": false,
+            "wall_support_passed": true,
+            "area_consistency_passed": false,
+            "confidence_coverage": 0.9371103922526042,
+            "wall_plane_count": 4,
+            "area_disagreement_ratio": 0.5235963548414961,
+            "maximum_area_disagreement": 0.25
+          }
+        }
+      ]
+    },
+    "metric_count": 3
+  },
+  "report_provenance": {
+    "schema_version": "1.1.0",
+    "independent_ground_truth": false,
+    "proxy_metrics": [
+      "opening_width",
+      "ceiling_height",
+      "wall_length",
+      "repeatability"
+    ],
+    "quality_gates": [
+      "confidence coverage",
+      "trajectory consistency",
+      "room geometry agreement"
+    ]
+  },
+  "assignment_readiness": {
+    "schema_version": "1.0.0",
+    "ready": false,
+    "validated_against_independent_ground_truth": false,
+    "required_tolerances": {
+      "opening_width_cm": 2.0,
+      "opening_pass_fraction": 0.85,
+      "ceiling_height_cm": 1.5
+    },
+    "blockers": [
+      "independent ground-truth manifest is required for assignment accuracy claims",
+      "confidence coverage or trajectory consistency gate failed",
+      "room geometry quality gate failed"
+    ],
+    "blocker_details": [
+      {
+        "severity": "critical",
+        "blocker": "independent ground-truth measurements are required",
+        "action": "record physical wall, opening, and ceiling measurements and provide a manifest"
+      },
+      {
+        "severity": "high",
+        "blocker": "confidence coverage or trajectory consistency gate failed",
+        "action": "improve capture coverage, pose registration, or trajectory consistency and rerun"
+      },
+      {
+        "severity": "high",
+        "blocker": "room geometry quality gate failed",
+        "action": "resolve wall-plane coverage and footprint disagreement before promoting measurements"
+      }
+    ],
+    "next_action": "capture independent wall, opening, and ceiling measurements and rerun the benchmark"
+  },
+  "capture_gate_summary": {
+    "capture_count": 3,
+    "confidence_passed_count": 2,
+    "trajectory_passed_count": 2,
+    "geometry_passed_count": 0
+  },
+  "report_schema_version": {
+    "value": "1.2.0"
+  },
+  "metric_summary": {
+    "case_count": 4,
+    "metric_count": 13,
+    "passed_count": 13,
+    "failed_count": 0,
+    "pass_coverage": 1.0
+  },
+  "quality_gates": {
+    "confidence": false,
+    "trajectory": false,
+    "room_geometry": false,
+    "independent_ground_truth": false
+  }
+}

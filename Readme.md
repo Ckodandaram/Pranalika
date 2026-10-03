@@ -50,6 +50,29 @@ widths. The CLI compares the generated plan to that manifest using the assignmen
 writes a separate benchmark report. It fails on room, wall, or opening identity mismatches rather
 than silently scoring an incomplete comparison.
 
+## ARKitScenes pilot validation
+
+ARKitScenes can be used as a geometry stress test, but its object annotations are not the
+assignment's independently measured wall, opening, and ceiling manifest. The raw trajectory is
+stored as a world-to-camera extrinsic; `property_scan.arkitscenes.convert_capture` inverts that
+pose and converts the axis-angle rotation, intrinsics, depth, and confidence frames to the
+normalized Pranalika capture layout.
+
+On Windows, the official downloader may require manual ZIP extraction because it invokes the Unix
+`unzip` command. Prefer a small pilot with `lowres_depth`, `confidence`, `lowres_wide.traj`,
+`lowres_wide_intrinsics`, and `mesh`; high-resolution depth is approximately gigabytes per capture.
+After extraction, conversion and execution can be run with:
+
+```powershell
+$env:PYTHONPATH="src"
+python -c "from property_scan.arkitscenes import convert_capture; convert_capture(r'D:\ARKitScenes\raw\Training\47333188', r'D:\ARKitScenes\normalized\47333188')"
+python -m property_scan --tier photo --input D:\ARKitScenes\normalized\47333188 --output D:\ARKitScenes\arkit_plan.json --benchmark-output D:\ARKitScenes\arkit_benchmark.json
+```
+
+ARKitScenes mesh and laser assets are reference geometry for diagnosing pose, floor, wall, and
+ceiling errors. They do not by themselves validate the assignment's 2 cm opening or 1.5 cm
+ceiling claims.
+
 ## Geometry quality gates
 
 The real-capture path now reports qualified vertical wall planes and their

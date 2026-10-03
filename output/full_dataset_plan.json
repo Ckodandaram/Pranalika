@@ -1,0 +1,1321 @@
+{
+  "capture_tier": "photo",
+  "property_id": "demo_property",
+  "schema_version": "1.0.0",
+  "generated_by": "property_scan",
+  "layout_drift_m": 0.0,
+  "stitching_notes": [
+    "stitching connected=True",
+    "stitching components=1",
+    "stitching layout drift=0.0000m"
+  ],
+  "quality_gates": {
+    "stitching": true,
+    "room_geometry": false,
+    "independent_ground_truth": false
+  },
+  "measurement_claims_validated": false,
+  "validation_summary": {
+    "valid": true,
+    "room_count": 3,
+    "connection_count": 2,
+    "verified_connection_count": 2,
+    "all_connections_verified": true,
+    "measurement_claims_validated": false
+  },
+  "assignment_readiness": {
+    "ready": false,
+    "measurement_claims_validated": false,
+    "quality_gates": {
+      "stitching": true,
+      "room_geometry": false,
+      "independent_ground_truth": false
+    },
+    "opening_summary": {
+      "total_openings": 5,
+      "validated_openings": 0,
+      "validated_fraction": 0.0
+    },
+    "blockers": [
+      "independent ground-truth measurements are required",
+      "room geometry quality gate failed",
+      "opening measurements remain diagnostic estimates"
+    ],
+    "next_action": "collect independent measurements and resolve the listed quality gates"
+  },
+  "rooms": [
+    {
+      "id": "room_1",
+      "name": "C00A170Fe1",
+      "floor_area": {
+        "value": 14.45,
+        "unit": "m2",
+        "confidence": {
+          "low": 13.293999999999999,
+          "high": 15.606,
+          "unit": "m",
+          "coverage": 0.95
+        }
+      },
+      "ceiling_height": {
+        "value": 2.3,
+        "unit": "m",
+        "confidence": {
+          "low": 2.1159999999999997,
+          "high": 2.484,
+          "unit": "m",
+          "coverage": 0.95
+        }
+      },
+      "walls": [
+        {
+          "value": 3.4,
+          "unit": "m",
+          "confidence": {
+            "low": 3.128,
+            "high": 3.6719999999999997,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        },
+        {
+          "value": 4.25,
+          "unit": "m",
+          "confidence": {
+            "low": 3.91,
+            "high": 4.59,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        },
+        {
+          "value": 3.4,
+          "unit": "m",
+          "confidence": {
+            "low": 3.128,
+            "high": 3.6719999999999997,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        },
+        {
+          "value": 4.25,
+          "unit": "m",
+          "confidence": {
+            "low": 3.91,
+            "high": 4.59,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        }
+      ],
+      "openings": [
+        {
+          "id": "opening_1_door",
+          "type": "door",
+          "width": {
+            "value": 0.85,
+            "unit": "m",
+            "confidence": {
+              "low": 0.782,
+              "high": 0.9179999999999999,
+              "unit": "m",
+              "coverage": 0.95
+            }
+          },
+          "height": {
+            "value": 2.05,
+            "unit": "m",
+            "confidence": {
+              "low": 1.886,
+              "high": 2.214,
+              "unit": "m",
+              "coverage": 0.95
+            }
+          },
+          "location": "south",
+          "source": "room baseline heuristic",
+          "validated": false,
+          "wall_index": 0,
+          "position_ratio": 0.5
+        }
+      ],
+      "damage": [],
+      "scope_items": [
+        {
+          "item": "capture_geometry",
+          "surface": "room",
+          "quantity": 1715.0,
+          "unit": "frames"
+        },
+        {
+          "item": "scan_depth",
+          "surface": "room",
+          "quantity": 1.0,
+          "unit": "coverage"
+        },
+        {
+          "item": "confidence_coverage",
+          "surface": "room",
+          "quantity": 0.998,
+          "unit": "ratio"
+        },
+        {
+          "item": "confidence_quality_gate",
+          "surface": "room",
+          "quantity": 1.0,
+          "unit": "passed"
+        },
+        {
+          "item": "confidence_minimum_coverage",
+          "surface": "room",
+          "quantity": 0.95,
+          "unit": "ratio"
+        },
+        {
+          "item": "depth_projected_x_extent",
+          "surface": "room",
+          "quantity": 0.391,
+          "unit": "m"
+        },
+        {
+          "item": "depth_projected_y_extent",
+          "surface": "room",
+          "quantity": 0.356,
+          "unit": "m"
+        },
+        {
+          "item": "depth_projected_z_extent",
+          "surface": "room",
+          "quantity": 0.938,
+          "unit": "m"
+        },
+        {
+          "item": "depth_projected_points",
+          "surface": "room",
+          "quantity": 981429.0,
+          "unit": "points"
+        },
+        {
+          "item": "depth_translated_x_extent",
+          "surface": "room",
+          "quantity": 4.13,
+          "unit": "m"
+        },
+        {
+          "item": "depth_translated_y_extent",
+          "surface": "room",
+          "quantity": 1.048,
+          "unit": "m"
+        },
+        {
+          "item": "depth_translated_z_extent",
+          "surface": "room",
+          "quantity": 5.753,
+          "unit": "m"
+        },
+        {
+          "item": "depth_translated_points",
+          "surface": "room",
+          "quantity": 975694.0,
+          "unit": "points"
+        },
+        {
+          "item": "depth_pose_registered_x_extent",
+          "surface": "room",
+          "quantity": 6.099,
+          "unit": "m"
+        },
+        {
+          "item": "depth_pose_registered_y_extent",
+          "surface": "room",
+          "quantity": 1.273,
+          "unit": "m"
+        },
+        {
+          "item": "depth_pose_registered_z_extent",
+          "surface": "room",
+          "quantity": 7.544,
+          "unit": "m"
+        },
+        {
+          "item": "depth_pose_registered_points",
+          "surface": "room",
+          "quantity": 975694.0,
+          "unit": "points"
+        },
+        {
+          "item": "floor_candidate_height",
+          "surface": "room",
+          "quantity": -0.646,
+          "unit": "m"
+        },
+        {
+          "item": "floor_candidate_x_extent",
+          "surface": "room",
+          "quantity": 7.492,
+          "unit": "m"
+        },
+        {
+          "item": "floor_candidate_z_extent",
+          "surface": "room",
+          "quantity": 5.587,
+          "unit": "m"
+        },
+        {
+          "item": "floor_candidate_inliers",
+          "surface": "room",
+          "quantity": 39758.0,
+          "unit": "points"
+        },
+        {
+          "item": "ransac_floor_height",
+          "surface": "room",
+          "quantity": -0.149,
+          "unit": "m"
+        },
+        {
+          "item": "ransac_floor_x_extent",
+          "surface": "room",
+          "quantity": 8.935,
+          "unit": "m"
+        },
+        {
+          "item": "ransac_floor_z_extent",
+          "surface": "room",
+          "quantity": 8.218,
+          "unit": "m"
+        },
+        {
+          "item": "ransac_floor_inliers",
+          "surface": "room",
+          "quantity": 2790.0,
+          "unit": "points"
+        },
+        {
+          "item": "ransac_floor_inlier_ratio",
+          "surface": "room",
+          "quantity": 0.172,
+          "unit": "ratio"
+        },
+        {
+          "item": "floor_footprint_area",
+          "surface": "room",
+          "quantity": 26.1383,
+          "unit": "m2"
+        },
+        {
+          "item": "floor_footprint_points",
+          "surface": "room",
+          "quantity": 1589.0,
+          "unit": "points"
+        },
+        {
+          "item": "room_boundary_candidate",
+          "surface": "room",
+          "quantity": 26.1383,
+          "unit": "m2",
+          "polygon": [
+            [
+              -6.1414,
+              -0.0474
+            ],
+            [
+              -0.0668,
+              -2.6007
+            ],
+            [
+              1.8231,
+              -0.3338
+            ],
+            [
+              1.8651,
+              0.3662
+            ],
+            [
+              -2.8423,
+              2.8711
+            ],
+            [
+              -5.2732,
+              2.5434
+            ],
+            [
+              -5.3052,
+              2.5357
+            ],
+            [
+              -6.1395,
+              -0.04
+            ]
+          ],
+          "horizontal_axis_u": [
+            0.0,
+            -0.0338,
+            -0.9994
+          ],
+          "horizontal_axis_v": [
+            -0.9986,
+            -0.0533,
+            0.0018
+          ],
+          "evidence": "floor-aligned registered-depth footprint",
+          "validated": false
+        },
+        {
+          "item": "boundary_wall_evidence_comparison",
+          "surface": "room",
+          "quantity": 0.0,
+          "unit": "ratio",
+          "boundary_area_m2": 26.1383,
+          "wall_evidence_area_m2": 0.0,
+          "consistent": false,
+          "validated": false
+        },
+        {
+          "item": "room_geometry_quality_gate",
+          "surface": "room",
+          "quantity": 0.0,
+          "unit": "passed",
+          "passed": false,
+          "confidence_passed": true,
+          "wall_support_passed": false,
+          "area_consistency_passed": false,
+          "confidence_coverage": 0.9983612060546875,
+          "wall_plane_count": 1,
+          "area_disagreement_ratio": null,
+          "maximum_area_disagreement": 0.25
+        },
+        {
+          "item": "wall_surface_points",
+          "surface": "walls",
+          "quantity": 1041.0,
+          "unit": "points"
+        },
+        {
+          "item": "wall_surface_vertical_extent",
+          "surface": "walls",
+          "quantity": 0.573,
+          "unit": "m"
+        },
+        {
+          "item": "wall_surface_u_extent",
+          "surface": "walls",
+          "quantity": 7.075,
+          "unit": "m"
+        },
+        {
+          "item": "wall_surface_v_extent",
+          "surface": "walls",
+          "quantity": 3.378,
+          "unit": "m"
+        },
+        {
+          "item": "vertical_wall_plane_count",
+          "surface": "walls",
+          "quantity": 1.0,
+          "unit": "planes"
+        },
+        {
+          "item": "wall_opening_candidate_count",
+          "surface": "openings",
+          "quantity": 0.0,
+          "unit": "candidates"
+        },
+        {
+          "item": "wall_length_source",
+          "surface": "walls",
+          "quantity": 0.0,
+          "unit": "room-area/aspect fallback; insufficient qualified wall planes"
+        }
+      ],
+      "adjacency": [
+        "room_2"
+      ]
+    },
+    {
+      "id": "room_2",
+      "name": "1A8384C3F6",
+      "floor_area": {
+        "value": 18.5,
+        "unit": "m2",
+        "confidence": {
+          "low": 17.02,
+          "high": 19.98,
+          "unit": "m",
+          "coverage": 0.95
+        }
+      },
+      "ceiling_height": {
+        "value": 2.2,
+        "unit": "m",
+        "confidence": {
+          "low": 2.024,
+          "high": 2.3760000000000003,
+          "unit": "m",
+          "coverage": 0.95
+        }
+      },
+      "walls": [
+        {
+          "value": 4.3,
+          "unit": "m",
+          "confidence": {
+            "low": 3.956,
+            "high": 4.644,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        },
+        {
+          "value": 4.3,
+          "unit": "m",
+          "confidence": {
+            "low": 3.956,
+            "high": 4.644,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        },
+        {
+          "value": 4.3,
+          "unit": "m",
+          "confidence": {
+            "low": 3.956,
+            "high": 4.644,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        },
+        {
+          "value": 4.3,
+          "unit": "m",
+          "confidence": {
+            "low": 3.956,
+            "high": 4.644,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        }
+      ],
+      "openings": [
+        {
+          "id": "opening_2_door",
+          "type": "door",
+          "width": {
+            "value": 0.72,
+            "unit": "m",
+            "confidence": {
+              "low": 0.6624,
+              "high": 0.7776,
+              "unit": "m",
+              "coverage": 0.95
+            }
+          },
+          "height": {
+            "value": 2.0,
+            "unit": "m",
+            "confidence": {
+              "low": 1.84,
+              "high": 2.16,
+              "unit": "m",
+              "coverage": 0.95
+            }
+          },
+          "location": "south",
+          "source": "room baseline heuristic",
+          "validated": false,
+          "wall_index": 0,
+          "position_ratio": 0.5
+        },
+        {
+          "id": "opening_2_window",
+          "type": "window",
+          "width": {
+            "value": 0.8,
+            "unit": "m",
+            "confidence": {
+              "low": 0.736,
+              "high": 0.8640000000000001,
+              "unit": "m",
+              "coverage": 0.95
+            }
+          },
+          "height": {
+            "value": 1.2,
+            "unit": "m",
+            "confidence": {
+              "low": 1.1039999999999999,
+              "high": 1.296,
+              "unit": "m",
+              "coverage": 0.95
+            }
+          },
+          "location": "north",
+          "source": "room baseline heuristic",
+          "validated": false,
+          "wall_index": 2,
+          "position_ratio": 0.5
+        }
+      ],
+      "damage": [],
+      "scope_items": [
+        {
+          "item": "capture_geometry",
+          "surface": "room",
+          "quantity": 5251.0,
+          "unit": "frames"
+        },
+        {
+          "item": "scan_depth",
+          "surface": "room",
+          "quantity": 1.0,
+          "unit": "coverage"
+        },
+        {
+          "item": "confidence_coverage",
+          "surface": "room",
+          "quantity": 0.99,
+          "unit": "ratio"
+        },
+        {
+          "item": "confidence_quality_gate",
+          "surface": "room",
+          "quantity": 1.0,
+          "unit": "passed"
+        },
+        {
+          "item": "confidence_minimum_coverage",
+          "surface": "room",
+          "quantity": 0.95,
+          "unit": "ratio"
+        },
+        {
+          "item": "depth_projected_x_extent",
+          "surface": "room",
+          "quantity": 0.74,
+          "unit": "m"
+        },
+        {
+          "item": "depth_projected_y_extent",
+          "surface": "room",
+          "quantity": 0.569,
+          "unit": "m"
+        },
+        {
+          "item": "depth_projected_z_extent",
+          "surface": "room",
+          "quantity": 1.462,
+          "unit": "m"
+        },
+        {
+          "item": "depth_projected_points",
+          "surface": "room",
+          "quantity": 973065.0,
+          "unit": "points"
+        },
+        {
+          "item": "depth_translated_x_extent",
+          "surface": "room",
+          "quantity": 8.079,
+          "unit": "m"
+        },
+        {
+          "item": "depth_translated_y_extent",
+          "surface": "room",
+          "quantity": 1.217,
+          "unit": "m"
+        },
+        {
+          "item": "depth_translated_z_extent",
+          "surface": "room",
+          "quantity": 9.954,
+          "unit": "m"
+        },
+        {
+          "item": "depth_translated_points",
+          "surface": "room",
+          "quantity": 957088.0,
+          "unit": "points"
+        },
+        {
+          "item": "depth_pose_registered_x_extent",
+          "surface": "room",
+          "quantity": 10.011,
+          "unit": "m"
+        },
+        {
+          "item": "depth_pose_registered_y_extent",
+          "surface": "room",
+          "quantity": 1.059,
+          "unit": "m"
+        },
+        {
+          "item": "depth_pose_registered_z_extent",
+          "surface": "room",
+          "quantity": 8.867,
+          "unit": "m"
+        },
+        {
+          "item": "depth_pose_registered_points",
+          "surface": "room",
+          "quantity": 957088.0,
+          "unit": "points"
+        },
+        {
+          "item": "floor_candidate_height",
+          "surface": "room",
+          "quantity": -0.402,
+          "unit": "m"
+        },
+        {
+          "item": "floor_candidate_x_extent",
+          "surface": "room",
+          "quantity": 9.3,
+          "unit": "m"
+        },
+        {
+          "item": "floor_candidate_z_extent",
+          "surface": "room",
+          "quantity": 4.092,
+          "unit": "m"
+        },
+        {
+          "item": "floor_candidate_inliers",
+          "surface": "room",
+          "quantity": 97848.0,
+          "unit": "points"
+        },
+        {
+          "item": "ransac_floor_height",
+          "surface": "room",
+          "quantity": 0.003,
+          "unit": "m"
+        },
+        {
+          "item": "ransac_floor_x_extent",
+          "surface": "room",
+          "quantity": 5.639,
+          "unit": "m"
+        },
+        {
+          "item": "ransac_floor_z_extent",
+          "surface": "room",
+          "quantity": 10.304,
+          "unit": "m"
+        },
+        {
+          "item": "ransac_floor_inliers",
+          "surface": "room",
+          "quantity": 2632.0,
+          "unit": "points"
+        },
+        {
+          "item": "ransac_floor_inlier_ratio",
+          "surface": "room",
+          "quantity": 0.134,
+          "unit": "ratio"
+        },
+        {
+          "item": "floor_footprint_area",
+          "surface": "room",
+          "quantity": 52.2225,
+          "unit": "m2"
+        },
+        {
+          "item": "floor_footprint_points",
+          "surface": "room",
+          "quantity": 2462.0,
+          "unit": "points"
+        },
+        {
+          "item": "room_boundary_candidate",
+          "surface": "room",
+          "quantity": 52.2225,
+          "unit": "m2",
+          "polygon": [
+            [
+              -10.1391,
+              3.2391
+            ],
+            [
+              -5.4868,
+              -0.3744
+            ],
+            [
+              -5.1986,
+              -0.486
+            ],
+            [
+              0.1507,
+              0.0883
+            ],
+            [
+              1.514,
+              2.7854
+            ],
+            [
+              0.9332,
+              6.9701
+            ],
+            [
+              0.8986,
+              6.9602
+            ],
+            [
+              -1.698,
+              6.1202
+            ],
+            [
+              -9.9617,
+              3.3232
+            ],
+            [
+              -9.9879,
+              3.3133
+            ],
+            [
+              -10.0192,
+              3.2999
+            ],
+            [
+              -10.083,
+              3.2702
+            ]
+          ],
+          "horizontal_axis_u": [
+            0.0,
+            -0.0246,
+            -0.9997
+          ],
+          "horizontal_axis_v": [
+            -1.0,
+            0.0046,
+            -0.0001
+          ],
+          "evidence": "floor-aligned registered-depth footprint",
+          "validated": false
+        },
+        {
+          "item": "boundary_wall_evidence_comparison",
+          "surface": "room",
+          "quantity": 0.0,
+          "unit": "ratio",
+          "boundary_area_m2": 52.2225,
+          "wall_evidence_area_m2": 0.0,
+          "consistent": false,
+          "validated": false
+        },
+        {
+          "item": "room_geometry_quality_gate",
+          "surface": "room",
+          "quantity": 0.0,
+          "unit": "passed",
+          "passed": false,
+          "confidence_passed": true,
+          "wall_support_passed": false,
+          "area_consistency_passed": false,
+          "confidence_coverage": 0.9898529052734375,
+          "wall_plane_count": 2,
+          "area_disagreement_ratio": null,
+          "maximum_area_disagreement": 0.25
+        },
+        {
+          "item": "wall_surface_points",
+          "surface": "walls",
+          "quantity": 5633.0,
+          "unit": "points"
+        },
+        {
+          "item": "wall_surface_vertical_extent",
+          "surface": "walls",
+          "quantity": 0.713,
+          "unit": "m"
+        },
+        {
+          "item": "wall_surface_u_extent",
+          "surface": "walls",
+          "quantity": 7.687,
+          "unit": "m"
+        },
+        {
+          "item": "wall_surface_v_extent",
+          "surface": "walls",
+          "quantity": 8.128,
+          "unit": "m"
+        },
+        {
+          "item": "vertical_wall_plane_count",
+          "surface": "walls",
+          "quantity": 2.0,
+          "unit": "planes"
+        },
+        {
+          "item": "wall_opening_candidate_count",
+          "surface": "openings",
+          "quantity": 0.0,
+          "unit": "candidates"
+        },
+        {
+          "item": "wall_length_source",
+          "surface": "walls",
+          "quantity": 0.0,
+          "unit": "room-area/aspect fallback; insufficient qualified wall planes"
+        }
+      ],
+      "adjacency": [
+        "room_1",
+        "room_3"
+      ]
+    },
+    {
+      "id": "room_3",
+      "name": "C7D28F72C6",
+      "floor_area": {
+        "value": 19.74,
+        "unit": "m2",
+        "confidence": {
+          "low": 18.1608,
+          "high": 21.3192,
+          "unit": "m",
+          "coverage": 0.95
+        }
+      },
+      "ceiling_height": {
+        "value": 3.8,
+        "unit": "m",
+        "confidence": {
+          "low": 3.496,
+          "high": 4.104,
+          "unit": "m",
+          "coverage": 0.95
+        }
+      },
+      "walls": [
+        {
+          "value": 2.69,
+          "unit": "m",
+          "confidence": {
+            "low": 2.4748,
+            "high": 2.9052,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        },
+        {
+          "value": 5.53,
+          "unit": "m",
+          "confidence": {
+            "low": 5.0876,
+            "high": 5.9724,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        },
+        {
+          "value": 8.07,
+          "unit": "m",
+          "confidence": {
+            "low": 7.4244,
+            "high": 8.7156,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        },
+        {
+          "value": 8.21,
+          "unit": "m",
+          "confidence": {
+            "low": 7.5532,
+            "high": 8.866800000000001,
+            "unit": "m",
+            "coverage": 0.95
+          }
+        }
+      ],
+      "openings": [
+        {
+          "id": "opening_3_door",
+          "type": "door",
+          "width": {
+            "value": 0.9,
+            "unit": "m",
+            "confidence": {
+              "low": 0.8280000000000001,
+              "high": 0.972,
+              "unit": "m",
+              "coverage": 0.95
+            }
+          },
+          "height": {
+            "value": 2.08,
+            "unit": "m",
+            "confidence": {
+              "low": 1.9136,
+              "high": 2.2464,
+              "unit": "m",
+              "coverage": 0.95
+            }
+          },
+          "location": "south",
+          "source": "room baseline heuristic",
+          "validated": false,
+          "wall_index": 0,
+          "position_ratio": 0.5
+        },
+        {
+          "id": "opening_3_window",
+          "type": "window",
+          "width": {
+            "value": 1.2,
+            "unit": "m",
+            "confidence": {
+              "low": 1.1039999999999999,
+              "high": 1.296,
+              "unit": "m",
+              "coverage": 0.95
+            }
+          },
+          "height": {
+            "value": 1.2,
+            "unit": "m",
+            "confidence": {
+              "low": 1.1039999999999999,
+              "high": 1.296,
+              "unit": "m",
+              "coverage": 0.95
+            }
+          },
+          "location": "north",
+          "source": "room baseline heuristic",
+          "validated": false,
+          "wall_index": 2,
+          "position_ratio": 0.5
+        }
+      ],
+      "damage": [],
+      "scope_items": [
+        {
+          "item": "capture_geometry",
+          "surface": "room",
+          "quantity": 9745.0,
+          "unit": "frames"
+        },
+        {
+          "item": "scan_depth",
+          "surface": "room",
+          "quantity": 1.0,
+          "unit": "coverage"
+        },
+        {
+          "item": "confidence_coverage",
+          "surface": "room",
+          "quantity": 0.937,
+          "unit": "ratio"
+        },
+        {
+          "item": "confidence_quality_gate",
+          "surface": "room",
+          "quantity": 0.0,
+          "unit": "passed"
+        },
+        {
+          "item": "confidence_minimum_coverage",
+          "surface": "room",
+          "quantity": 0.95,
+          "unit": "ratio"
+        },
+        {
+          "item": "depth_projected_x_extent",
+          "surface": "room",
+          "quantity": 1.756,
+          "unit": "m"
+        },
+        {
+          "item": "depth_projected_y_extent",
+          "surface": "room",
+          "quantity": 1.5,
+          "unit": "m"
+        },
+        {
+          "item": "depth_projected_z_extent",
+          "surface": "room",
+          "quantity": 3.216,
+          "unit": "m"
+        },
+        {
+          "item": "depth_projected_points",
+          "surface": "room",
+          "quantity": 921217.0,
+          "unit": "points"
+        },
+        {
+          "item": "depth_translated_x_extent",
+          "surface": "room",
+          "quantity": 7.454,
+          "unit": "m"
+        },
+        {
+          "item": "depth_translated_y_extent",
+          "surface": "room",
+          "quantity": 1.555,
+          "unit": "m"
+        },
+        {
+          "item": "depth_translated_z_extent",
+          "surface": "room",
+          "quantity": 9.161,
+          "unit": "m"
+        },
+        {
+          "item": "depth_translated_points",
+          "surface": "room",
+          "quantity": 940263.0,
+          "unit": "points"
+        },
+        {
+          "item": "depth_pose_registered_x_extent",
+          "surface": "room",
+          "quantity": 8.726,
+          "unit": "m"
+        },
+        {
+          "item": "depth_pose_registered_y_extent",
+          "surface": "room",
+          "quantity": 2.714,
+          "unit": "m"
+        },
+        {
+          "item": "depth_pose_registered_z_extent",
+          "surface": "room",
+          "quantity": 11.23,
+          "unit": "m"
+        },
+        {
+          "item": "depth_pose_registered_points",
+          "surface": "room",
+          "quantity": 940263.0,
+          "unit": "points"
+        },
+        {
+          "item": "floor_candidate_height",
+          "surface": "room",
+          "quantity": -0.233,
+          "unit": "m"
+        },
+        {
+          "item": "floor_candidate_x_extent",
+          "surface": "room",
+          "quantity": 9.224,
+          "unit": "m"
+        },
+        {
+          "item": "floor_candidate_z_extent",
+          "surface": "room",
+          "quantity": 5.806,
+          "unit": "m"
+        },
+        {
+          "item": "floor_candidate_inliers",
+          "surface": "room",
+          "quantity": 106607.0,
+          "unit": "points"
+        },
+        {
+          "item": "ransac_floor_height",
+          "surface": "room",
+          "quantity": -0.169,
+          "unit": "m"
+        },
+        {
+          "item": "ransac_floor_x_extent",
+          "surface": "room",
+          "quantity": 11.024,
+          "unit": "m"
+        },
+        {
+          "item": "ransac_floor_z_extent",
+          "surface": "room",
+          "quantity": 6.662,
+          "unit": "m"
+        },
+        {
+          "item": "ransac_floor_inliers",
+          "surface": "room",
+          "quantity": 3007.0,
+          "unit": "points"
+        },
+        {
+          "item": "ransac_floor_inlier_ratio",
+          "surface": "room",
+          "quantity": 0.113,
+          "unit": "ratio"
+        },
+        {
+          "item": "floor_footprint_area",
+          "surface": "room",
+          "quantity": 46.308,
+          "unit": "m2"
+        },
+        {
+          "item": "floor_footprint_points",
+          "surface": "room",
+          "quantity": 2816.0,
+          "unit": "points"
+        },
+        {
+          "item": "room_boundary_candidate",
+          "surface": "room",
+          "quantity": 46.308,
+          "unit": "m2",
+          "polygon": [
+            [
+              -9.4185,
+              2.0876
+            ],
+            [
+              -6.2949,
+              -6.1422
+            ],
+            [
+              -3.6491,
+              -7.6344
+            ],
+            [
+              -1.5118,
+              -2.2965
+            ],
+            [
+              -2.2054,
+              0.8504
+            ],
+            [
+              -4.795,
+              1.5184
+            ],
+            [
+              -9.3749,
+              2.1841
+            ],
+            [
+              -9.3831,
+              2.1764
+            ],
+            [
+              -9.4152,
+              2.1171
+            ]
+          ],
+          "horizontal_axis_u": [
+            0.0,
+            -0.0279,
+            -0.9996
+          ],
+          "horizontal_axis_v": [
+            -0.9996,
+            0.0292,
+            -0.0008
+          ],
+          "evidence": "floor-aligned registered-depth footprint",
+          "validated": false
+        },
+        {
+          "item": "boundary_wall_evidence_comparison",
+          "surface": "room",
+          "quantity": 0.5235963548414961,
+          "unit": "ratio",
+          "boundary_area_m2": 46.308,
+          "wall_evidence_area_m2": 22.0613,
+          "consistent": false,
+          "validated": false
+        },
+        {
+          "item": "room_geometry_quality_gate",
+          "surface": "room",
+          "quantity": 0.0,
+          "unit": "passed",
+          "passed": false,
+          "confidence_passed": false,
+          "wall_support_passed": true,
+          "area_consistency_passed": false,
+          "confidence_coverage": 0.9371103922526042,
+          "wall_plane_count": 4,
+          "area_disagreement_ratio": 0.5235963548414961,
+          "maximum_area_disagreement": 0.25
+        },
+        {
+          "item": "wall_surface_points",
+          "surface": "walls",
+          "quantity": 16781.0,
+          "unit": "points"
+        },
+        {
+          "item": "wall_surface_vertical_extent",
+          "surface": "walls",
+          "quantity": 2.98,
+          "unit": "m"
+        },
+        {
+          "item": "wall_surface_u_extent",
+          "surface": "walls",
+          "quantity": 13.996,
+          "unit": "m"
+        },
+        {
+          "item": "wall_surface_v_extent",
+          "surface": "walls",
+          "quantity": 8.903,
+          "unit": "m"
+        },
+        {
+          "item": "vertical_wall_plane_count",
+          "surface": "walls",
+          "quantity": 4.0,
+          "unit": "planes"
+        },
+        {
+          "item": "wall_opening_candidate_count",
+          "surface": "openings",
+          "quantity": 1.0,
+          "unit": "candidates"
+        },
+        {
+          "item": "wall_opening_candidate",
+          "surface": "openings",
+          "quantity": 0.7,
+          "unit": "m",
+          "plane_index": 2,
+          "start_m": 5.4658,
+          "end_m": 6.1658,
+          "confidence": 0.75,
+          "evidence": "wall-plane support gap"
+        },
+        {
+          "item": "wall_length_source",
+          "surface": "walls",
+          "quantity": 1.0,
+          "unit": "qualified registered wall planes"
+        }
+      ],
+      "adjacency": [
+        "room_2"
+      ]
+    }
+  ],
+  "whole_property_connections": [
+    {
+      "from": "room_1",
+      "to": "room_2",
+      "type": "hallway",
+      "drift_m": 0.0,
+      "verified": true
+    },
+    {
+      "from": "room_2",
+      "to": "room_3",
+      "type": "hallway",
+      "drift_m": 0.0,
+      "verified": true
+    }
+  ]
+}
