@@ -7,6 +7,7 @@ from property_scan.common.output_contract import Measurement, Opening, PropertyP
 from property_scan.data_loader import (
     discover_capture_profiles,
     estimate_projected_depth_geometry,
+    estimate_translated_depth_geometry,
     summarize_capture_profile,
 )
 
@@ -119,6 +120,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         baseline = _ROOM_TYPE_BASELINES[_room_type_from_name(room_type)]
         metrics = summarize_capture_profile(session)
         depth_geometry = estimate_projected_depth_geometry(session)
+        translated_geometry = estimate_translated_depth_geometry(session)
         area_m2 = round(metrics.estimated_floor_area_m2, 2)
         ceiling_height = round(metrics.estimated_ceiling_height_m, 2)
 
@@ -159,6 +161,10 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     {"item": "depth_projected_y_extent", "surface": "room", "quantity": round(float(depth_geometry["y_extent_m"]), 3), "unit": "m"},
                     {"item": "depth_projected_z_extent", "surface": "room", "quantity": round(float(depth_geometry["z_extent_m"]), 3), "unit": "m"},
                     {"item": "depth_projected_points", "surface": "room", "quantity": float(depth_geometry["projected_point_count"]), "unit": "points"},
+                    {"item": "depth_translated_x_extent", "surface": "room", "quantity": round(float(translated_geometry["x_extent_m"]), 3), "unit": "m"},
+                    {"item": "depth_translated_y_extent", "surface": "room", "quantity": round(float(translated_geometry["y_extent_m"]), 3), "unit": "m"},
+                    {"item": "depth_translated_z_extent", "surface": "room", "quantity": round(float(translated_geometry["z_extent_m"]), 3), "unit": "m"},
+                    {"item": "depth_translated_points", "surface": "room", "quantity": float(translated_geometry["registered_point_count"]), "unit": "points"},
                 ],
                 adjacency=[],
             )

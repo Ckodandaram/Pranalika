@@ -70,7 +70,7 @@ def _read_camera_matrix(path: Path) -> list[list[float]] | None:
     return None
 
 
-def _read_odometry(path: Path) -> list[dict[str, float]]:
+def _read_odometry(path: Path) -> list[dict[str, float | str]]:
     if not path.exists():
         return []
     try:
@@ -94,7 +94,16 @@ def _read_odometry(path: Path) -> list[dict[str, float]]:
             continue
         if not row[x_idx].strip() and not row[y_idx].strip() and not row[z_idx].strip():
             continue
-        records.append({"x": _safe_float(row[x_idx]), "y": _safe_float(row[y_idx]), "z": _safe_float(row[z_idx])})
+        record: dict[str, float | str] = {
+            "x": _safe_float(row[x_idx]),
+            "y": _safe_float(row[y_idx]),
+            "z": _safe_float(row[z_idx]),
+        }
+        if "frame" in header:
+            frame_idx = header.index("frame")
+            if len(row) > frame_idx:
+                record["frame"] = row[frame_idx].strip()
+        records.append(record)
     return records
 
 
@@ -239,6 +248,72 @@ def estimate_projected_depth_geometry(profile: CaptureProfile, sample_limit: int
     }
 
 
+def estimate_translated_depth_geometry(profile: CaptureProfile, sample_limit: int = 20) -> dict[str, float | int]:
+    """Estimate translated world-frame extents for matching depth/odometry samples.
+
+    The capture odometry provides translations in metres, but its rotation
+    convention is not specified by the dataset. Translation is therefore
+    applied explicitly while the result remains marked as diagnostic until
+    calibrated pose registration is added.
+    """
+    depth_files = sorted((profile.root / "depth").glob("*.png"))[:sample_limit]
+    odometry = _read_odometry(profile.root / "odometry.csv")
+    if not depth_files or not odometry or not profile.camera_matrix:
+        return {
+            "registered_point_count": 0,
+            "x_extent_m": 0.0,
+            "y_extent_m": 0.0,
+            "z_extent_m": 0.0,
+        }
+
+    fx = profile.camera_matrix[0][0]
+    fy = profile.camera_matrix[1][1]
+    cx = profile.camera_matrix[0][2]
+    cy = profile.camera_matrix[1][2]
+    if fx <= 0 or fy <= 0:
+        return {
+            "registered_point_count": 0,
+            "x_extent_m": 0.0,
+            "y_extent_m": 0.0,
+            "z_extent_m": 0.0,
+        }
+
+    world_x: list[np.ndarray] = []
+    world_y: list[np.ndarray] = []
+    world_z: list[np.ndarray] = []
+    for path, pose in zip(depth_files, odometry):
+        depth_mm = np.asarray(Image.open(path), dtype=np.float32)
+        valid = depth_mm > 0
+        if not np.any(valid):
+            continue
+        rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
+        z_m = depth_mm[valid] * 0.001
+        x_m = (columns[valid] - cx) * z_m / fx
+        y_m = (rows[valid] - cy) * z_m / fy
+        world_x.append(x_m + float(pose["x"]))
+        world_y.append(y_m + float(pose["y"]))
+        world_z.append(z_m + float(pose["z"]))
+
+    if not world_z:
+        return {
+            "registered_point_count": 0,
+            "x_extent_m": 0.0,
+            "y_extent_m": 0.0,
+            "z_extent_m": 0.0,
+        }
+
+    def robust_extent(values: np.ndarray) -> float:
+        low, high = np.percentile(values, [2.0, 98.0])
+        return float(max(0.0, high - low))
+
+    return {
+        "registered_point_count": int(sum(values.size for values in world_z)),
+        "x_extent_m": robust_extent(np.concatenate(world_x)),
+        "y_extent_m": robust_extent(np.concatenate(world_y)),
+        "z_extent_m": robust_extent(np.concatenate(world_z)),
+    }
+
+
 def _safe_image_stats(depth_dir: Path) -> tuple[float, float, float]:
     files = sorted(depth_dir.glob("*.png"))
     if not files:
@@ -318,6 +393,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
     profile = detect_capture_profile(scan_root)
     metrics = summarize_capture_profile(profile)
     projected_geometry = estimate_projected_depth_geometry(profile)
+    translated_geometry = estimate_translated_depth_geometry(profile)
     return {
         "capture_name": profile.name,
         "scan_type": metrics.capture_type,
@@ -328,6 +404,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
         "estimated_floor_area_m2": metrics.estimated_floor_area_m2,
         "estimated_ceiling_height_m": metrics.estimated_ceiling_height_m,
         **projected_geometry,
+        "translated_depth_geometry": translated_geometry,
         "notes": metrics.notes,
     }
 

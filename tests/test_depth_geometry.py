@@ -7,7 +7,12 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from property_scan.data_loader import detect_capture_profile, estimate_projected_depth_geometry, estimate_real_room_geometry
+from property_scan.data_loader import (
+    detect_capture_profile,
+    estimate_projected_depth_geometry,
+    estimate_real_room_geometry,
+    estimate_translated_depth_geometry,
+)
 
 
 class TestDepthGeometry(unittest.TestCase):
@@ -24,6 +29,14 @@ class TestDepthGeometry(unittest.TestCase):
         summary = estimate_real_room_geometry(root)
         self.assertIn("projected_point_count", summary)
         self.assertGreater(summary["projected_point_count"], 0)
+        self.assertGreater(summary["translated_depth_geometry"]["registered_point_count"], 0)
+
+    def test_odometry_translation_is_applied_to_depth_samples(self):
+        root = ROOT / "data" / "single_scan_floor_only" / "1a8384c3f6"
+        geometry = estimate_translated_depth_geometry(detect_capture_profile(root))
+        self.assertGreater(geometry["registered_point_count"], 0)
+        self.assertGreater(geometry["x_extent_m"], 0.0)
+        self.assertGreater(geometry["z_extent_m"], 0.0)
 
 
 if __name__ == "__main__":
