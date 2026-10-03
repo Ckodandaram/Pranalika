@@ -37,6 +37,8 @@ def main() -> int:
     print(f"Wrote plan to {output_path}")
     if args.ground_truth:
         report = compare_plan_to_ground_truth(plan, load_ground_truth(args.ground_truth))
+        if report["metric_summary"]["metric_count"] == 0:
+            raise ValueError("ground-truth benchmark produced no metrics")
         plan.quality_gates["independent_ground_truth"] = bool(report["passed"])
         plan.measurement_claims_validated = bool(
             report["passed"]

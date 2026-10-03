@@ -7,7 +7,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from property_scan.benchmark_runner import validate_assignment_benchmark_report
+from property_scan.benchmark_runner import benchmark_metric_summary, validate_assignment_benchmark_report
 
 
 class TestBenchmarkArtifactContract(unittest.TestCase):
@@ -46,6 +46,24 @@ class TestBenchmarkArtifactContract(unittest.TestCase):
         }
         with self.assertRaisesRegex(ValueError, "opening_width requires metric details"):
             validate_assignment_benchmark_report(report)
+
+    def test_aggregates_metric_outcomes(self):
+        report = {
+            "opening_width": {"metrics": [{"passed": True}, {"passed": False}]},
+            "ceiling_height": {"metrics": [{"passed": True}]},
+            "wall_length": {"metrics": []},
+            "repeatability": {"metrics": [{"passed": True}]},
+        }
+        self.assertEqual(
+            benchmark_metric_summary(report),
+            {
+                "case_count": 4,
+                "metric_count": 4,
+                "passed_count": 3,
+                "failed_count": 1,
+                "pass_coverage": 0.75,
+            },
+        )
 
 
 if __name__ == "__main__":

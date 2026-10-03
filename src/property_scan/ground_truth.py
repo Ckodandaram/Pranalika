@@ -189,6 +189,11 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
         blockers.append("stitching quality gate failed")
     if not plan.quality_gates.get("room_geometry", False):
         blockers.append("room geometry quality gate failed")
+    total_metrics = sum(len(report["metrics"]) for report in reports.values())
+    passed_metrics = sum(
+        sum(1 for metric in report["metrics"] if metric["passed"])
+        for report in reports.values()
+    )
     return {
         "schema_version": "1.1.0",
         "ground_truth_source": manifest.source,
@@ -197,6 +202,13 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
         "rooms_evaluated": len(expected_rooms),
         "reports": reports,
         "passed": passed,
+        "metric_summary": {
+            "case_count": len(reports),
+            "metric_count": total_metrics,
+            "passed_count": passed_metrics,
+            "failed_count": total_metrics - passed_metrics,
+            "pass_coverage": passed_metrics / total_metrics if total_metrics else 0.0,
+        },
         "validated_against_independent_ground_truth": True,
         "assignment_readiness": {
             "ready": False,
