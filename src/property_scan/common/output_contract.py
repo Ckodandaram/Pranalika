@@ -173,5 +173,16 @@ def validate_plan_contract(plan: PropertyPlan) -> None:
                 raise ValueError(f"{room.id} opening wall_index is outside wall bounds")
             if opening.position_ratio is not None and not 0.0 <= opening.position_ratio <= 1.0:
                 raise ValueError(f"{room.id} opening position_ratio must be between 0 and 1")
+            if opening.wall_index is not None:
+                wall_length = room.walls[opening.wall_index].value
+                position = opening.position_ratio if opening.position_ratio is not None else 0.5
+                half_width_ratio = opening.width.value / max(wall_length, 1e-9) / 2.0
+                if position - half_width_ratio < 0.0 or position + half_width_ratio > 1.0:
+                    raise ValueError(f"{room.id} opening interval exceeds host wall bounds")
+    for connection in plan.whole_property_connections:
+        source = connection.get("from")
+        target = connection.get("to")
+        if source not in room_ids or target not in room_ids:
+            raise ValueError("whole-property connection references an unknown room")
     if not math.isfinite(plan.layout_drift_m) or plan.layout_drift_m < 0:
         raise ValueError("layout_drift_m must be finite and non-negative")

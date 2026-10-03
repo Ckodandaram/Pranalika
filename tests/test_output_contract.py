@@ -12,7 +12,7 @@ if str(SRC) not in sys.path:
 
 from property_scan.cli import main
 from property_scan.pipeline import build_lidar_plan, build_photo_plan, build_video_plan
-from property_scan.common.output_contract import Measurement, PropertyPlan, Room, validate_plan_contract
+from property_scan.common.output_contract import Measurement, Opening, PropertyPlan, Room, validate_plan_contract
 
 
 class TestPropertyPlanContract(unittest.TestCase):
@@ -38,6 +38,39 @@ class TestPropertyPlanContract(unittest.TestCase):
         room = Room("room_1", "Room", Measurement(0), Measurement(2.7))
         with self.assertRaisesRegex(ValueError, "finite and positive"):
             validate_plan_contract(PropertyPlan("photo", "demo", [room]))
+
+    def test_plan_contract_rejects_opening_outside_host_wall(self):
+        room = Room(
+            "room_1",
+            "Room",
+            Measurement(10),
+            Measurement(2.7),
+            walls=[Measurement(1.0)],
+            openings=[
+                Opening(
+                    "opening_1",
+                    "door",
+                    Measurement(0.8),
+                    Measurement(2.0),
+                    "south",
+                    wall_index=0,
+                    position_ratio=0.1,
+                )
+            ],
+        )
+        with self.assertRaisesRegex(ValueError, "opening interval exceeds"):
+            validate_plan_contract(PropertyPlan("photo", "demo", [room]))
+
+    def test_plan_contract_rejects_unknown_connection_room(self):
+        room = Room("room_1", "Room", Measurement(10), Measurement(2.7))
+        plan = PropertyPlan(
+            "photo",
+            "demo",
+            [room],
+            whole_property_connections=[{"from": "room_1", "to": "room_2"}],
+        )
+        with self.assertRaisesRegex(ValueError, "unknown room"):
+            validate_plan_contract(plan)
             self.assertIn("whole_property_connections", payload)
             self.assertIn("stitching_notes", payload)
             self.assertTrue(any("stitching connected=True" in note for note in payload["stitching_notes"]))

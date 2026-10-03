@@ -141,6 +141,10 @@ positive finite measurements, and non-negative layout drift. Stitching
 connections also preserve their drift and verified status in the JSON output,
 so rejected links are visible to downstream consumers.
 
+The contract also verifies that an opening's physical width fits within its
+host wall at the normalized position, and that whole-property connections
+reference rooms present in the same plan.
+
 When an independent ground-truth manifest is supplied, the CLI now validates
 the generated plan before comparison and updates the persisted plan with the
 ground-truth gate result. `measurement_claims_validated` becomes true only
