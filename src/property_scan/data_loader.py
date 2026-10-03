@@ -246,6 +246,22 @@ def summarize_capture_profile(profile: CaptureProfile) -> ScanMetrics:
     )
 
 
+def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str | list[str]]:
+    profile = detect_capture_profile(scan_root)
+    metrics = summarize_capture_profile(profile)
+    return {
+        "capture_name": profile.name,
+        "scan_type": metrics.capture_type,
+        "frame_count": metrics.frame_count,
+        "median_depth_mm": metrics.median_depth_mm,
+        "depth_range_mm": metrics.depth_range_mm,
+        "confidence_coverage": metrics.confidence_coverage,
+        "estimated_floor_area_m2": metrics.estimated_floor_area_m2,
+        "estimated_ceiling_height_m": metrics.estimated_ceiling_height_m,
+        "notes": metrics.notes,
+    }
+
+
 def summarize_capture_profiles(base_root: str | Path) -> list[ScanMetrics]:
     return [summarize_capture_profile(profile) for profile in discover_capture_profiles(base_root)]
 

@@ -20,6 +20,12 @@ class TestRealSampleMetrics(unittest.TestCase):
         self.assertGreater(metrics["single_room"].estimated_floor_area_m2, 8.0)
         self.assertGreater(metrics["single_room"].confidence_coverage, 0.0)
 
+    def test_real_geometry_estimation_uses_capture_depth_signal(self):
+        geometry = __import__("property_scan.data_loader", fromlist=["estimate_real_room_geometry"]).estimate_real_room_geometry(ROOT / "data" / "single_scan_with_ceiling" / "c7d28f72c6")
+        self.assertEqual(geometry["scan_type"], "with_ceiling")
+        self.assertGreater(geometry["estimated_ceiling_height_m"], 2.5)
+        self.assertGreater(geometry["confidence_coverage"], 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()
