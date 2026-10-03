@@ -6,6 +6,7 @@ from pathlib import Path
 
 from property_scan.ground_truth import (
     compare_plan_to_ground_truth,
+    assess_ground_truth_coverage,
     load_ground_truth,
     validate_ground_truth_benchmark_report,
 )
@@ -46,7 +47,12 @@ def main() -> int:
     status_path.write_text(json.dumps(build_assignment_status(plan), indent=2), encoding="utf-8")
     print(f"Wrote assignment status to {status_path}")
     if args.ground_truth:
-        report = compare_plan_to_ground_truth(plan, load_ground_truth(args.ground_truth))
+        manifest = load_ground_truth(args.ground_truth)
+        coverage = assess_ground_truth_coverage(plan, manifest)
+        if not coverage["complete"]:
+            raise ValueError(f"Ground-truth manifest is incomplete: {coverage}")
+        report = compare_plan_to_ground_truth(plan, manifest)
+        report["ground_truth_coverage"] = coverage
         if report["metric_summary"]["metric_count"] == 0:
             raise ValueError("ground-truth benchmark produced no metrics")
         validate_ground_truth_benchmark_report(report)

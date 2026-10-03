@@ -14,6 +14,7 @@ from property_scan.ground_truth import (
     GroundTruthManifest,
     GroundTruthRoom,
     compare_plan_to_ground_truth,
+    assess_ground_truth_coverage,
     load_ground_truth,
     validate_ground_truth_benchmark_report,
 )
@@ -72,6 +73,24 @@ class TestGroundTruth(unittest.TestCase):
             "room geometry quality gate failed",
         ])
         validate_ground_truth_benchmark_report(report)
+        coverage = assess_ground_truth_coverage(plan, loaded)
+        self.assertTrue(coverage["complete"])
+        self.assertEqual(coverage["room_count"], 1)
+
+    def test_ground_truth_coverage_reports_missing_room(self):
+        plan = PropertyPlan(
+            capture_tier="photo",
+            property_id="test",
+            rooms=[Room("room_1", "Room", Measurement(10), Measurement(2.7), walls=[Measurement(4.0)])],
+        )
+        manifest = GroundTruthManifest(
+            source="survey",
+            rooms=[GroundTruthRoom("room_2", 2.7, [4.0])],
+        )
+        coverage = assess_ground_truth_coverage(plan, manifest)
+        self.assertFalse(coverage["complete"])
+        self.assertEqual(coverage["missing_rooms"], ["room_1"])
+        self.assertEqual(coverage["extra_rooms"], ["room_2"])
 
     def test_ground_truth_validator_rejects_missing_room_results(self):
         with self.assertRaisesRegex(ValueError, "room-level results"):

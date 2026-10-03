@@ -160,6 +160,11 @@ requirements, prioritized next actions, and whether an accuracy claim is
 allowed. Its `diagnostic_only` status is intentional when independent physical
 ground truth is unavailable.
 
+Before an independent benchmark runs, the CLI performs a ground-truth coverage
+check for room IDs, wall counts, ceiling heights, and opening identities. An
+incomplete manifest is rejected with a structured coverage report instead of
+producing a misleading partial accuracy result.
+
 Assignment benchmark artifacts include a versioned `report_provenance` section
 and an `assignment_readiness` decision. Readiness is intentionally false until
 an independent ground-truth manifest is supplied and the confidence,

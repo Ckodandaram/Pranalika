@@ -175,6 +175,51 @@ def validate_ground_truth_benchmark_report(report: dict[str, Any]) -> None:
             raise ValueError(f"ground-truth quality gates are missing {key}")
 
 
+def assess_ground_truth_coverage(plan: PropertyPlan, manifest: GroundTruthManifest) -> dict[str, Any]:
+    """Check label completeness before running the strict comparison."""
+    validate_plan_contract(plan)
+    predicted = {room.id: room for room in plan.rooms}
+    expected = {room.id: room for room in manifest.rooms}
+    missing_rooms = sorted(set(predicted) - set(expected))
+    extra_rooms = sorted(set(expected) - set(predicted))
+    room_checks: list[dict[str, Any]] = []
+    for room_id in sorted(set(predicted) & set(expected)):
+        generated = predicted[room_id]
+        measured = expected[room_id]
+        generated_openings = {(opening.type, opening.location) for opening in generated.openings}
+        measured_openings = {(opening.type, opening.location) for opening in measured.openings}
+        room_checks.append({
+            "room_id": room_id,
+            "ceiling_height_present": measured.ceiling_height_m > 0,
+            "wall_count_match": len(generated.walls) == len(measured.wall_lengths_m),
+            "opening_keys_missing": sorted(generated_openings - measured_openings),
+            "opening_keys_unexpected": sorted(measured_openings - generated_openings),
+        })
+    complete = (
+        not missing_rooms
+        and not extra_rooms
+        and all(
+            check["ceiling_height_present"]
+            and check["wall_count_match"]
+            and not check["opening_keys_missing"]
+            and not check["opening_keys_unexpected"]
+            for check in room_checks
+        )
+    )
+    return {
+        "complete": complete,
+        "room_count": len(room_checks),
+        "missing_rooms": missing_rooms,
+        "extra_rooms": extra_rooms,
+        "rooms": room_checks,
+        "next_action": (
+            "run the independent benchmark"
+            if complete
+            else "complete the missing room, wall, ceiling, or opening labels before benchmarking"
+        ),
+    }
+
+
 def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManifest) -> dict[str, Any]:
     validate_plan_contract(plan)
     predicted_rooms = {room.id: room for room in plan.rooms}
