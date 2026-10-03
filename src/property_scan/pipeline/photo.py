@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Iterable
 
 from property_scan.common.output_contract import Measurement, Opening, PropertyPlan, Room, confidence_interval_for_tier
-from property_scan.data_loader import discover_capture_profiles
+from property_scan.data_loader import discover_capture_profiles, summarize_capture_profile
 
 _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 _ROOM_TYPE_BASELINES = {
@@ -113,13 +113,9 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
             room_type = "hall"
 
         baseline = _ROOM_TYPE_BASELINES[_room_type_from_name(room_type)]
-        area_m2 = round(max(8.0, 8.0 + session.frame_count / 350.0 + session.total_motion_m * 25.0), 2)
-        if "floor_only" in session.name.lower():
-            area_m2 = round(area_m2 * 0.75, 2)
-        if "with_ceiling" in session.name.lower() or session.has_ceiling:
-            ceiling_height = baseline["ceiling"] + 0.03
-        else:
-            ceiling_height = baseline["ceiling"] - 0.02
+        metrics = summarize_capture_profile(session)
+        area_m2 = round(metrics.estimated_floor_area_m2, 2)
+        ceiling_height = round(metrics.estimated_ceiling_height_m, 2)
 
         wall_lengths = _estimate_wall_lengths(area_m2, baseline["aspect"])
         doors = [
@@ -147,12 +143,13 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                 id=f"room_{index}",
                 name=session.name.replace("_", " ").title(),
                 floor_area=Measurement(value=area_m2, unit="m2", confidence=confidence_interval_for_tier("photo", area_m2)),
-                ceiling_height=Measurement(value=round(ceiling_height, 2), unit="m", confidence=confidence_interval_for_tier("photo", ceiling_height)),
+                ceiling_height=Measurement(value=ceiling_height, unit="m", confidence=confidence_interval_for_tier("photo", ceiling_height)),
                 walls=[Measurement(value=value, unit="m", confidence=confidence_interval_for_tier("photo", value)) for value in wall_lengths],
                 openings=doors,
                 scope_items=[
                     {"item": "capture_geometry", "surface": "room", "quantity": float(session.frame_count), "unit": "frames"},
                     {"item": "scan_depth", "surface": "room", "quantity": 1.0 if session.has_depth else 0.0, "unit": "coverage"},
+                    {"item": "confidence_coverage", "surface": "room", "quantity": round(metrics.confidence_coverage, 3), "unit": "ratio"},
                 ],
                 adjacency=[],
             )

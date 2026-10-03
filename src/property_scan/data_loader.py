@@ -5,6 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
+import numpy as np
+from PIL import Image
+
 
 @dataclass
 class CaptureProfile:
@@ -149,6 +152,102 @@ def discover_capture_profiles(base_root: str | Path) -> list[CaptureProfile]:
 
     profiles = [detect_capture_profile(candidate) for candidate in sorted(set(candidates))]
     return [profile for profile in profiles if profile.frame_count > 0]
+
+
+@dataclass
+class ScanMetrics:
+    profile_name: str
+    capture_type: str
+    frame_count: int
+    median_depth_mm: float
+    depth_range_mm: float
+    confidence_coverage: float
+    estimated_floor_area_m2: float
+    estimated_ceiling_height_m: float
+    notes: list[str] = None
+
+    def __post_init__(self) -> None:
+        if self.notes is None:
+            self.notes = []
+
+
+def _safe_image_stats(depth_dir: Path) -> tuple[float, float, float]:
+    files = sorted(depth_dir.glob("*.png"))
+    if not files:
+        return 0.0, 0.0, 0.0
+
+    samples: list[np.ndarray] = []
+    for path in files[:20]:
+        image = Image.open(path)
+        array = np.asarray(image, dtype=np.float32)
+        samples.append(array)
+
+    if not samples:
+        return 0.0, 0.0, 0.0
+
+    combined = np.concatenate([sample.ravel() for sample in samples])
+    valid = combined[combined > 0]
+    if valid.size == 0:
+        return 0.0, 0.0, 0.0
+    median = float(np.median(valid))
+    depth_min = float(valid.min())
+    depth_max = float(valid.max())
+    return median, depth_min, depth_max
+
+
+def summarize_capture_profile(profile: CaptureProfile) -> ScanMetrics:
+    median_depth, depth_min, depth_max = _safe_image_stats(profile.root / "depth")
+    depth_range = depth_max - depth_min if depth_max > depth_min else 0.0
+    confidence_dir = profile.root / "confidence"
+    confidence_files = sorted(confidence_dir.glob("*.png")) if confidence_dir.exists() else []
+    coverage = 0.0
+    if confidence_files:
+        valid = 0
+        total = 0
+        for path in confidence_files[:20]:
+            image = Image.open(path)
+            arr = np.asarray(image)
+            total += arr.size
+            valid += int(np.count_nonzero(arr > 0))
+        coverage = valid / total if total else 0.0
+
+    capture_type = profile.scan_type
+    if capture_type == "floor_only":
+        estimated_ceiling_height = max(1.5, min(2.2, depth_range * 0.001 * 0.85 + 0.4))
+        floor_area = max(8.0, 8.0 + profile.frame_count / 500.0)
+    elif capture_type == "with_ceiling":
+        estimated_ceiling_height = max(2.4, min(3.8, depth_range * 0.001 * 0.95 + 0.25))
+        floor_area = max(10.0, 10.0 + profile.frame_count / 1000.0)
+    elif capture_type == "single_room":
+        estimated_ceiling_height = max(2.3, min(3.3, depth_range * 0.001 * 0.9 + 0.2))
+        floor_area = max(12.0, 12.0 + profile.frame_count / 700.0)
+    else:
+        estimated_ceiling_height = max(1.6, min(3.0, depth_range * 0.001 * 0.8 + 0.3))
+        floor_area = max(9.0, 9.0 + profile.frame_count / 600.0)
+
+    notes: list[str] = []
+    if capture_type == "floor_only":
+        notes.append("floor-only capture; ceiling height inferred from depth spread")
+    elif capture_type == "with_ceiling":
+        notes.append("ceiling information present; height estimated from depth range")
+    else:
+        notes.append("single-room motion profile; room metrics estimated from capture geometry")
+
+    return ScanMetrics(
+        profile_name=profile.name,
+        capture_type=capture_type,
+        frame_count=profile.frame_count,
+        median_depth_mm=float(median_depth),
+        depth_range_mm=float(depth_range),
+        confidence_coverage=float(coverage),
+        estimated_floor_area_m2=float(floor_area),
+        estimated_ceiling_height_m=float(estimated_ceiling_height),
+        notes=notes,
+    )
+
+
+def summarize_capture_profiles(base_root: str | Path) -> list[ScanMetrics]:
+    return [summarize_capture_profile(profile) for profile in discover_capture_profiles(base_root)]
 
 
 def _iter_directory_candidates(root: Path) -> Iterable[Path]:
