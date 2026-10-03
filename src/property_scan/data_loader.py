@@ -115,6 +115,31 @@ def _read_odometry(path: Path) -> list[dict[str, float | str]]:
     return records
 
 
+def _depth_odometry_pairs(
+    profile: CaptureProfile,
+    sample_limit: int,
+) -> tuple[list[tuple[Path, dict[str, float | str]]], int]:
+    depth_files = sorted((profile.root / "depth").glob("*.png"))
+    odometry = _read_odometry(profile.root / "odometry.csv")
+    poses_by_frame = {
+        str(pose["frame"]).zfill(6): pose
+        for pose in odometry
+        if "frame" in pose
+    }
+    pairs: list[tuple[Path, dict[str, float | str]]] = []
+    skipped = 0
+    for depth_path in depth_files:
+        frame_id = depth_path.stem.zfill(6)
+        pose = poses_by_frame.get(frame_id)
+        if pose is None:
+            skipped += 1
+            continue
+        pairs.append((depth_path, pose))
+        if len(pairs) >= sample_limit:
+            break
+    return pairs, skipped
+
+
 def detect_capture_profile(scan_root: str | Path) -> CaptureProfile:
     root = Path(scan_root)
     if not root.exists():
@@ -264,11 +289,12 @@ def estimate_translated_depth_geometry(profile: CaptureProfile, sample_limit: in
     applied explicitly while the result remains marked as diagnostic until
     calibrated pose registration is added.
     """
-    depth_files = sorted((profile.root / "depth").glob("*.png"))[:sample_limit]
-    odometry = _read_odometry(profile.root / "odometry.csv")
-    if not depth_files or not odometry or not profile.camera_matrix:
+    depth_pose_pairs, skipped_frames = _depth_odometry_pairs(profile, sample_limit)
+    if not depth_pose_pairs or not profile.camera_matrix:
         return {
             "registered_point_count": 0,
+            "matched_frame_count": 0,
+            "skipped_frame_count": skipped_frames,
             "x_extent_m": 0.0,
             "y_extent_m": 0.0,
             "z_extent_m": 0.0,
@@ -289,7 +315,7 @@ def estimate_translated_depth_geometry(profile: CaptureProfile, sample_limit: in
     world_x: list[np.ndarray] = []
     world_y: list[np.ndarray] = []
     world_z: list[np.ndarray] = []
-    for path, pose in zip(depth_files, odometry):
+    for path, pose in depth_pose_pairs:
         depth_mm = np.asarray(Image.open(path), dtype=np.float32)
         valid = depth_mm > 0
         if not np.any(valid):
@@ -305,6 +331,8 @@ def estimate_translated_depth_geometry(profile: CaptureProfile, sample_limit: in
     if not world_z:
         return {
             "registered_point_count": 0,
+            "matched_frame_count": len(depth_pose_pairs),
+            "skipped_frame_count": skipped_frames,
             "x_extent_m": 0.0,
             "y_extent_m": 0.0,
             "z_extent_m": 0.0,
@@ -316,6 +344,8 @@ def estimate_translated_depth_geometry(profile: CaptureProfile, sample_limit: in
 
     return {
         "registered_point_count": int(sum(values.size for values in world_z)),
+        "matched_frame_count": len(depth_pose_pairs),
+        "skipped_frame_count": skipped_frames,
         "x_extent_m": robust_extent(np.concatenate(world_x)),
         "y_extent_m": robust_extent(np.concatenate(world_y)),
         "z_extent_m": robust_extent(np.concatenate(world_z)),
@@ -353,10 +383,9 @@ def estimate_pose_registered_depth_geometry(profile: CaptureProfile, sample_limi
     conventional active rotation matrix for that ordering. The result remains
     diagnostic until the capture SDK pose convention is independently confirmed.
     """
-    depth_files = sorted((profile.root / "depth").glob("*.png"))[:sample_limit]
-    odometry = _read_odometry(profile.root / "odometry.csv")
-    if not depth_files or not odometry or not profile.camera_matrix:
-        return {"registered_point_count": 0, "x_extent_m": 0.0, "y_extent_m": 0.0, "z_extent_m": 0.0}
+    depth_pose_pairs, skipped_frames = _depth_odometry_pairs(profile, sample_limit)
+    if not depth_pose_pairs or not profile.camera_matrix:
+        return {"registered_point_count": 0, "matched_frame_count": 0, "skipped_frame_count": skipped_frames, "x_extent_m": 0.0, "y_extent_m": 0.0, "z_extent_m": 0.0}
 
     fx, fy = profile.camera_matrix[0][0], profile.camera_matrix[1][1]
     cx, cy = profile.camera_matrix[0][2], profile.camera_matrix[1][2]
@@ -366,7 +395,7 @@ def estimate_pose_registered_depth_geometry(profile: CaptureProfile, sample_limi
     world_x: list[np.ndarray] = []
     world_y: list[np.ndarray] = []
     world_z: list[np.ndarray] = []
-    for path, pose in zip(depth_files, odometry):
+    for path, pose in depth_pose_pairs:
         depth_mm = np.asarray(Image.open(path), dtype=np.float32)
         valid = depth_mm > 0
         if not np.any(valid):
@@ -384,7 +413,7 @@ def estimate_pose_registered_depth_geometry(profile: CaptureProfile, sample_limi
         world_z.append(rotated_z + float(pose["z"]))
 
     if not world_z:
-        return {"registered_point_count": 0, "x_extent_m": 0.0, "y_extent_m": 0.0, "z_extent_m": 0.0}
+        return {"registered_point_count": 0, "matched_frame_count": len(depth_pose_pairs), "skipped_frame_count": skipped_frames, "x_extent_m": 0.0, "y_extent_m": 0.0, "z_extent_m": 0.0}
 
     def robust_extent(values: np.ndarray) -> float:
         low, high = np.percentile(values, [2.0, 98.0])
@@ -392,6 +421,8 @@ def estimate_pose_registered_depth_geometry(profile: CaptureProfile, sample_limi
 
     return {
         "registered_point_count": int(sum(values.size for values in world_z)),
+        "matched_frame_count": len(depth_pose_pairs),
+        "skipped_frame_count": skipped_frames,
         "x_extent_m": robust_extent(np.concatenate(world_x)),
         "y_extent_m": robust_extent(np.concatenate(world_y)),
         "z_extent_m": robust_extent(np.concatenate(world_z)),
@@ -405,9 +436,8 @@ def estimate_floor_plane_geometry(profile: CaptureProfile, sample_limit: int = 2
     within 8 cm of that level form the floor band. This is a diagnostic
     hypothesis, not a fitted plane or independently measured floor truth.
     """
-    depth_files = sorted((profile.root / "depth").glob("*.png"))[:sample_limit]
-    odometry = _read_odometry(profile.root / "odometry.csv")
-    if not depth_files or not odometry or not profile.camera_matrix:
+    depth_pose_pairs, skipped_frames = _depth_odometry_pairs(profile, sample_limit)
+    if not depth_pose_pairs or not profile.camera_matrix:
         return {"floor_height_m": 0.0, "floor_inlier_count": 0, "floor_x_extent_m": 0.0, "floor_z_extent_m": 0.0}
 
     fx, fy = profile.camera_matrix[0][0], profile.camera_matrix[1][1]
@@ -416,7 +446,7 @@ def estimate_floor_plane_geometry(profile: CaptureProfile, sample_limit: int = 2
         return {"floor_height_m": 0.0, "floor_inlier_count": 0, "floor_x_extent_m": 0.0, "floor_z_extent_m": 0.0}
 
     points: list[np.ndarray] = []
-    for path, pose in zip(depth_files, odometry):
+    for path, pose in depth_pose_pairs:
         depth_mm = np.asarray(Image.open(path), dtype=np.float32)
         valid = depth_mm > 0
         if not np.any(valid):
@@ -470,11 +500,12 @@ def estimate_ransac_floor_plane_geometry(
     assignment needs a floor reference. It is still only a sensor-derived
     diagnostic until pose convention and capture calibration are verified.
     """
-    depth_files = sorted((profile.root / "depth").glob("*.png"))[:sample_limit]
-    odometry = _read_odometry(profile.root / "odometry.csv")
-    if not depth_files or not odometry or not profile.camera_matrix:
+    depth_pose_pairs, skipped_frames = _depth_odometry_pairs(profile, sample_limit)
+    if not depth_pose_pairs or not profile.camera_matrix:
         return {
             "plane_found": False,
+            "matched_frame_count": 0,
+            "skipped_frame_count": skipped_frames,
             "floor_height_m": 0.0,
             "floor_inlier_count": 0,
             "floor_inlier_ratio": 0.0,
@@ -497,7 +528,7 @@ def estimate_ransac_floor_plane_geometry(
         }
 
     point_batches: list[np.ndarray] = []
-    for path, pose in zip(depth_files, odometry):
+    for path, pose in depth_pose_pairs:
         depth_mm = np.asarray(Image.open(path), dtype=np.float32)
         valid = depth_mm > 0
         if not np.any(valid):
@@ -523,6 +554,8 @@ def estimate_ransac_floor_plane_geometry(
     if not point_batches:
         return {
             "plane_found": False,
+            "matched_frame_count": len(depth_pose_pairs),
+            "skipped_frame_count": skipped_frames,
             "floor_height_m": 0.0,
             "floor_inlier_count": 0,
             "floor_inlier_ratio": 0.0,
@@ -607,6 +640,8 @@ def estimate_ransac_floor_plane_geometry(
     floor_height = float(np.median(full_inliers[:, 1]))
     return {
         "plane_found": True,
+        "matched_frame_count": len(depth_pose_pairs),
+        "skipped_frame_count": skipped_frames,
         "floor_height_m": floor_height,
         "floor_inlier_count": int(full_inliers.shape[0]),
         "floor_inlier_ratio": float(full_inliers.shape[0] / cloud.shape[0]),
@@ -640,9 +675,8 @@ def estimate_floor_aligned_footprint(
             "polygon_xz_m": [],
         }
 
-    depth_files = sorted((profile.root / "depth").glob("*.png"))[:sample_limit]
-    odometry = _read_odometry(profile.root / "odometry.csv")
-    if not depth_files or not odometry or not profile.camera_matrix:
+    depth_pose_pairs, skipped_frames = _depth_odometry_pairs(profile, sample_limit)
+    if not depth_pose_pairs or not profile.camera_matrix:
         return {
             "footprint_found": False,
             "footprint_point_count": 0,
@@ -653,7 +687,7 @@ def estimate_floor_aligned_footprint(
     fx, fy = profile.camera_matrix[0][0], profile.camera_matrix[1][1]
     cx, cy = profile.camera_matrix[0][2], profile.camera_matrix[1][2]
     points: list[np.ndarray] = []
-    for path, pose in zip(depth_files, odometry):
+    for path, pose in depth_pose_pairs:
         depth_mm = np.asarray(Image.open(path), dtype=np.float32)
         valid = depth_mm > 0
         if not np.any(valid):

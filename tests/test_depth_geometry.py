@@ -41,6 +41,8 @@ class TestDepthGeometry(unittest.TestCase):
         self.assertGreater(geometry["registered_point_count"], 0)
         self.assertGreater(geometry["x_extent_m"], 0.0)
         self.assertGreater(geometry["z_extent_m"], 0.0)
+        self.assertEqual(geometry["matched_frame_count"], 20)
+        self.assertEqual(geometry["skipped_frame_count"], 0)
 
     def test_quaternion_pose_registration_uses_real_capture_data(self):
         root = ROOT / "data" / "single_scan_with_ceiling" / "c7d28f72c6"
