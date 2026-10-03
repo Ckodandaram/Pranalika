@@ -148,6 +148,12 @@ reference rooms present in the same plan.
 CLI plan JSON also includes `validation_summary` with room count, connection
 count, verified-connection count, and measurement-claim status.
 
+Plan JSON also includes `assignment_readiness`, a single decision surface
+covering stitching, room geometry, independent ground truth, and the fraction
+of openings that have actually been validated. Prototype opening estimates
+remain visible but are reported as blockers rather than being promoted into
+assignment claims.
+
 Assignment benchmark artifacts include a versioned `report_provenance` section
 and an `assignment_readiness` decision. Readiness is intentionally false until
 an independent ground-truth manifest is supplied and the confidence,
@@ -159,6 +165,11 @@ Proxy benchmark artifacts use schema version `1.2.0` and retain every
 per-measurement result, not only aggregate counts. The artifact validator
 rejects missing metric details or provenance that incorrectly claims independent
 ground truth before the JSON is written.
+
+Readiness reports also include prioritized blocker details with severity and a
+concrete remediation action. Proxy reports include capture-level counts for
+confidence, trajectory, and room-geometry gates so reviewers can identify
+whether a failure is isolated or systemic.
 
 When an independent ground-truth manifest is supplied, the CLI now validates
 the generated plan before comparison and updates the persisted plan with the

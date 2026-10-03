@@ -65,6 +65,34 @@ class BenchmarkSuite:
         return results
 
 
+def _readiness_blocker_details(
+    *,
+    independent_ground_truth: bool,
+    reconstruction_passed: bool,
+    geometry_passed: bool,
+) -> list[dict[str, str]]:
+    details: list[dict[str, str]] = []
+    if not independent_ground_truth:
+        details.append({
+            "severity": "critical",
+            "blocker": "independent ground-truth measurements are required",
+            "action": "record physical wall, opening, and ceiling measurements and provide a manifest",
+        })
+    if not reconstruction_passed:
+        details.append({
+            "severity": "high",
+            "blocker": "confidence coverage or trajectory consistency gate failed",
+            "action": "improve capture coverage, pose registration, or trajectory consistency and rerun",
+        })
+    if not geometry_passed:
+        details.append({
+            "severity": "high",
+            "blocker": "room geometry quality gate failed",
+            "action": "resolve wall-plane coverage and footprint disagreement before promoting measurements",
+        })
+    return details
+
+
 def validate_assignment_benchmark_report(report: dict[str, Any]) -> None:
     """Reject incomplete proxy benchmark artifacts before they are persisted."""
     required_cases = {"opening_width", "ceiling_height", "wall_length", "repeatability"}
@@ -85,6 +113,8 @@ def validate_assignment_benchmark_report(report: dict[str, Any]) -> None:
             raise ValueError(f"assignment readiness is missing {key}")
     if readiness["validated_against_independent_ground_truth"] is not False:
         raise ValueError("proxy benchmark readiness cannot claim independent ground truth")
+    if not isinstance(readiness.get("blocker_details"), list):
+        raise ValueError("assignment readiness requires blocker details")
     for case_name in required_cases:
         case = report[case_name]
         if not isinstance(case.get("metrics"), list):
@@ -338,7 +368,18 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
             "ceiling_height_cm": 1.5,
         },
         "blockers": blockers,
+        "blocker_details": _readiness_blocker_details(
+            independent_ground_truth=False,
+            reconstruction_passed=bool(reconstruction_summary["validated_for_accuracy_claims"]),
+            geometry_passed=bool(geometry_summary["validated_for_measurement_claims"]),
+        ),
         "next_action": "capture independent wall, opening, and ceiling measurements and rerun the benchmark",
+    }
+    results["capture_gate_summary"] = {
+        "capture_count": len(quality),
+        "confidence_passed_count": sum(1 for item in quality if item["confidence_passed"]),
+        "trajectory_passed_count": sum(1 for item in quality if item["trajectory_consistent"]),
+        "geometry_passed_count": sum(1 for item in geometry_evidence if item["gate"]["passed"]),
     }
     results["report_schema_version"] = {"value": "1.2.0"}
     results["metric_summary"] = benchmark_metric_summary(results)

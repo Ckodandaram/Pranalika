@@ -130,6 +130,7 @@ class PropertyPlan:
             "quality_gates": self.quality_gates,
             "measurement_claims_validated": self.measurement_claims_validated,
             "validation_summary": plan_validation_summary(self),
+            "assignment_readiness": assignment_readiness_summary(self),
             "rooms": [room.to_dict() for room in self.rooms],
             "whole_property_connections": self.whole_property_connections,
         }
@@ -216,4 +217,43 @@ def plan_validation_summary(plan: PropertyPlan) -> Dict[str, Any]:
         "verified_connection_count": verified_connections,
         "all_connections_verified": verified_connections == connection_count,
         "measurement_claims_validated": plan.measurement_claims_validated,
+    }
+
+
+def assignment_readiness_summary(plan: PropertyPlan) -> Dict[str, Any]:
+    """Explain why a plan is or is not eligible for assignment claims."""
+    validated_openings = sum(
+        1 for room in plan.rooms for opening in room.openings if opening.validated
+    )
+    total_openings = sum(len(room.openings) for room in plan.rooms)
+    gates = {
+        "stitching": bool(plan.quality_gates.get("stitching", False)),
+        "room_geometry": bool(plan.quality_gates.get("room_geometry", False)),
+        "independent_ground_truth": bool(plan.quality_gates.get("independent_ground_truth", False)),
+    }
+    blockers: list[str] = []
+    if not gates["independent_ground_truth"]:
+        blockers.append("independent ground-truth measurements are required")
+    if not gates["stitching"]:
+        blockers.append("stitching quality gate failed")
+    if not gates["room_geometry"]:
+        blockers.append("room geometry quality gate failed")
+    if total_openings and validated_openings < total_openings:
+        blockers.append("opening measurements remain diagnostic estimates")
+    ready = bool(plan.measurement_claims_validated and all(gates.values()))
+    return {
+        "ready": ready,
+        "measurement_claims_validated": plan.measurement_claims_validated,
+        "quality_gates": gates,
+        "opening_summary": {
+            "total_openings": total_openings,
+            "validated_openings": validated_openings,
+            "validated_fraction": validated_openings / total_openings if total_openings else 0.0,
+        },
+        "blockers": [] if ready else blockers,
+        "next_action": (
+            "assignment measurement claim is supported by all configured gates"
+            if ready
+            else "collect independent measurements and resolve the listed quality gates"
+        ),
     }

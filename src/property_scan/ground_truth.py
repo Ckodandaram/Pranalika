@@ -165,6 +165,8 @@ def validate_ground_truth_benchmark_report(report: dict[str, Any]) -> None:
     readiness = report.get("assignment_readiness")
     if not isinstance(readiness, dict) or "blockers" not in readiness or "next_action" not in readiness:
         raise ValueError("ground-truth benchmark requires assignment readiness details")
+    if not isinstance(readiness.get("blocker_details"), list):
+        raise ValueError("ground-truth assignment readiness requires blocker details")
     gates = report.get("quality_gates")
     if not isinstance(gates, dict):
         raise ValueError("ground-truth benchmark requires quality gate status")
@@ -267,6 +269,14 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
     ready = all(quality_gates.values())
     if ready:
         blockers = []
+    blocker_details = [
+        {
+            "severity": "high",
+            "blocker": blocker,
+            "action": "resolve this gate and rerun the independent benchmark",
+        }
+        for blocker in blockers
+    ]
     return {
         "schema_version": "1.1.0",
         "ground_truth_source": manifest.source,
@@ -300,6 +310,7 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
                 "ceiling_height_cm": 1.5,
             },
             "blockers": blockers,
+            "blocker_details": blocker_details,
             "next_action": (
                 "assignment measurement claim is supported by all configured gates"
                 if ready

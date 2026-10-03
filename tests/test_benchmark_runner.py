@@ -23,6 +23,7 @@ class TestBenchmarkArtifactContract(unittest.TestCase):
                 "ready": False,
                 "validated_against_independent_ground_truth": True,
                 "blockers": [],
+                "blocker_details": [],
                 "next_action": "none",
             },
         }
@@ -41,6 +42,7 @@ class TestBenchmarkArtifactContract(unittest.TestCase):
                 "ready": False,
                 "validated_against_independent_ground_truth": False,
                 "blockers": [],
+                "blocker_details": [],
                 "next_action": "none",
             },
         }
@@ -77,6 +79,7 @@ class TestBenchmarkArtifactContract(unittest.TestCase):
                 "ready": False,
                 "validated_against_independent_ground_truth": False,
                 "blockers": [],
+                "blocker_details": [],
                 "next_action": "none",
             },
             "metric_summary": {"metric_count": 1},

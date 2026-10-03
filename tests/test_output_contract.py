@@ -32,6 +32,9 @@ class TestPropertyPlanContract(unittest.TestCase):
             self.assertIn("stitching_notes", payload)
             self.assertIn("quality_gates", payload)
             self.assertIn("validation_summary", payload)
+            self.assertIn("assignment_readiness", payload)
+            self.assertFalse(payload["assignment_readiness"]["ready"])
+            self.assertGreater(len(payload["assignment_readiness"]["blockers"]), 0)
             self.assertFalse(payload["measurement_claims_validated"])
             self.assertEqual(payload["capture_tier"], "photo")
 
@@ -120,6 +123,7 @@ class TestPropertyPlanContract(unittest.TestCase):
             self.assertIn("position_ratio", room.openings[0].to_dict())
             self.assertTrue(any("stitching connected=True" in note for note in plan.stitching_notes))
             self.assertIn("quality_gates", plan.to_dict())
+            self.assertIn("assignment_readiness", plan.to_dict())
 
     def test_lidar_plan_has_damage_and_confidence(self):
         with tempfile.TemporaryDirectory() as tmpdir:

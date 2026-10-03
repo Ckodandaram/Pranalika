@@ -59,6 +59,7 @@ class TestGroundTruth(unittest.TestCase):
         self.assertTrue(report["validated_against_independent_ground_truth"])
         self.assertIn("assignment_readiness", report)
         self.assertFalse(report["assignment_readiness"]["ready"])
+        self.assertEqual(len(report["assignment_readiness"]["blocker_details"]), 2)
         self.assertEqual(report["metric_summary"]["metric_count"], 6)
         self.assertEqual(report["metric_summary"]["failed_count"], 0)
         self.assertEqual(report["room_results"][0]["room_id"], "room_1")
@@ -81,7 +82,7 @@ class TestGroundTruth(unittest.TestCase):
                 "metric_summary": {"metric_count": 1},
                 "rooms_evaluated": 1,
                 "quality_gates": {},
-                "assignment_readiness": {"blockers": [], "next_action": "none"},
+                "assignment_readiness": {"blockers": [], "blocker_details": [], "next_action": "none"},
             })
 
     def test_manifest_rejects_duplicate_room_ids(self):
