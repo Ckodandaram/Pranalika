@@ -87,6 +87,11 @@ def _read_odometry(path: Path) -> list[dict[str, float | str]]:
     x_idx = header.index("x")
     y_idx = header.index("y")
     z_idx = header.index("z")
+    quaternion_indices = {
+        name: header.index(name)
+        for name in ("qx", "qy", "qz", "qw")
+        if name in header
+    }
 
     records: list[dict[str, float]] = []
     for row in rows[1:]:
@@ -103,6 +108,9 @@ def _read_odometry(path: Path) -> list[dict[str, float | str]]:
             frame_idx = header.index("frame")
             if len(row) > frame_idx:
                 record["frame"] = row[frame_idx].strip()
+        if len(quaternion_indices) == 4:
+            for name, index in quaternion_indices.items():
+                record[name] = _safe_float(row[index]) if len(row) > index else 0.0
         records.append(record)
     return records
 
@@ -314,6 +322,82 @@ def estimate_translated_depth_geometry(profile: CaptureProfile, sample_limit: in
     }
 
 
+def _rotate_points_by_quaternion(
+    x: np.ndarray,
+    y: np.ndarray,
+    z: np.ndarray,
+    quaternion: tuple[float, float, float, float],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    qx, qy, qz, qw = quaternion
+    norm = float(np.sqrt(qx * qx + qy * qy + qz * qz + qw * qw))
+    if norm <= 1e-12:
+        return x, y, z
+    qx, qy, qz, qw = (component / norm for component in (qx, qy, qz, qw))
+    rotation = np.array(
+        [
+            [1 - 2 * (qy * qy + qz * qz), 2 * (qx * qy - qz * qw), 2 * (qx * qz + qy * qw)],
+            [2 * (qx * qy + qz * qw), 1 - 2 * (qx * qx + qz * qz), 2 * (qy * qz - qx * qw)],
+            [2 * (qx * qz - qy * qw), 2 * (qy * qz + qx * qw), 1 - 2 * (qx * qx + qy * qy)],
+        ],
+        dtype=np.float32,
+    )
+    points = np.vstack((x, y, z))
+    rotated = rotation @ points
+    return rotated[0], rotated[1], rotated[2]
+
+
+def estimate_pose_registered_depth_geometry(profile: CaptureProfile, sample_limit: int = 20) -> dict[str, float | int]:
+    """Register depth samples with odometry translation and quaternion rotation.
+
+    The CSV stores quaternion columns as qx, qy, qz, qw. This function uses the
+    conventional active rotation matrix for that ordering. The result remains
+    diagnostic until the capture SDK pose convention is independently confirmed.
+    """
+    depth_files = sorted((profile.root / "depth").glob("*.png"))[:sample_limit]
+    odometry = _read_odometry(profile.root / "odometry.csv")
+    if not depth_files or not odometry or not profile.camera_matrix:
+        return {"registered_point_count": 0, "x_extent_m": 0.0, "y_extent_m": 0.0, "z_extent_m": 0.0}
+
+    fx, fy = profile.camera_matrix[0][0], profile.camera_matrix[1][1]
+    cx, cy = profile.camera_matrix[0][2], profile.camera_matrix[1][2]
+    if fx <= 0 or fy <= 0:
+        return {"registered_point_count": 0, "x_extent_m": 0.0, "y_extent_m": 0.0, "z_extent_m": 0.0}
+
+    world_x: list[np.ndarray] = []
+    world_y: list[np.ndarray] = []
+    world_z: list[np.ndarray] = []
+    for path, pose in zip(depth_files, odometry):
+        depth_mm = np.asarray(Image.open(path), dtype=np.float32)
+        valid = depth_mm > 0
+        if not np.any(valid):
+            continue
+        rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
+        z_m = depth_mm[valid] * 0.001
+        x_m = (columns[valid] - cx) * z_m / fx
+        y_m = (rows[valid] - cy) * z_m / fy
+        quaternion = tuple(float(pose.get(name, 0.0)) for name in ("qx", "qy", "qz", "qw"))
+        if quaternion[3] == 0.0 and quaternion[:3] == (0.0, 0.0, 0.0):
+            quaternion = (0.0, 0.0, 0.0, 1.0)
+        rotated_x, rotated_y, rotated_z = _rotate_points_by_quaternion(x_m, y_m, z_m, quaternion)
+        world_x.append(rotated_x + float(pose["x"]))
+        world_y.append(rotated_y + float(pose["y"]))
+        world_z.append(rotated_z + float(pose["z"]))
+
+    if not world_z:
+        return {"registered_point_count": 0, "x_extent_m": 0.0, "y_extent_m": 0.0, "z_extent_m": 0.0}
+
+    def robust_extent(values: np.ndarray) -> float:
+        low, high = np.percentile(values, [2.0, 98.0])
+        return float(max(0.0, high - low))
+
+    return {
+        "registered_point_count": int(sum(values.size for values in world_z)),
+        "x_extent_m": robust_extent(np.concatenate(world_x)),
+        "y_extent_m": robust_extent(np.concatenate(world_y)),
+        "z_extent_m": robust_extent(np.concatenate(world_z)),
+    }
+
+
 def _safe_image_stats(depth_dir: Path) -> tuple[float, float, float]:
     files = sorted(depth_dir.glob("*.png"))
     if not files:
@@ -394,6 +478,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
     metrics = summarize_capture_profile(profile)
     projected_geometry = estimate_projected_depth_geometry(profile)
     translated_geometry = estimate_translated_depth_geometry(profile)
+    pose_registered_geometry = estimate_pose_registered_depth_geometry(profile)
     return {
         "capture_name": profile.name,
         "scan_type": metrics.capture_type,
@@ -405,6 +490,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
         "estimated_ceiling_height_m": metrics.estimated_ceiling_height_m,
         **projected_geometry,
         "translated_depth_geometry": translated_geometry,
+        "pose_registered_depth_geometry": pose_registered_geometry,
         "notes": metrics.notes,
     }
 

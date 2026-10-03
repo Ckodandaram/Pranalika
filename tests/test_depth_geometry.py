@@ -10,6 +10,7 @@ if str(SRC) not in sys.path:
 from property_scan.data_loader import (
     detect_capture_profile,
     estimate_projected_depth_geometry,
+    estimate_pose_registered_depth_geometry,
     estimate_real_room_geometry,
     estimate_translated_depth_geometry,
 )
@@ -36,6 +37,14 @@ class TestDepthGeometry(unittest.TestCase):
         geometry = estimate_translated_depth_geometry(detect_capture_profile(root))
         self.assertGreater(geometry["registered_point_count"], 0)
         self.assertGreater(geometry["x_extent_m"], 0.0)
+        self.assertGreater(geometry["z_extent_m"], 0.0)
+
+    def test_quaternion_pose_registration_uses_real_capture_data(self):
+        root = ROOT / "data" / "single_scan_with_ceiling" / "c7d28f72c6"
+        geometry = estimate_pose_registered_depth_geometry(detect_capture_profile(root))
+        self.assertGreater(geometry["registered_point_count"], 0)
+        self.assertGreater(geometry["x_extent_m"], 0.0)
+        self.assertGreater(geometry["y_extent_m"], 0.0)
         self.assertGreater(geometry["z_extent_m"], 0.0)
 
 
