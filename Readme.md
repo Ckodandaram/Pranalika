@@ -75,3 +75,8 @@ The opening stage now reports internal gaps in wall-plane support as
 estimated width, and evidence confidence, but are deliberately not promoted
 to door/window measurements because occlusion and incomplete scan coverage
 can create identical gaps.
+
+Each candidate is retained in the photo room's `scope_items` with its source
+plane and horizontal interval, rather than exposing only an aggregate count.
+The default candidate gate accepts widths from 0.45 m through 2.5 m; broader
+holes are treated as incomplete wall coverage rather than openings.

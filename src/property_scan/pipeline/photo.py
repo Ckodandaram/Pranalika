@@ -214,6 +214,20 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     {"item": "wall_surface_v_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_horizontal_v_extent_m"]), 3), "unit": "m"},
                     {"item": "vertical_wall_plane_count", "surface": "walls", "quantity": float(wall_planes["planes_found"]), "unit": "planes"},
                     {"item": "wall_opening_candidate_count", "surface": "openings", "quantity": float(len(opening_candidates)), "unit": "candidates"},
+                    *[
+                        {
+                            "item": "wall_opening_candidate",
+                            "surface": "openings",
+                            "quantity": float(candidate["width_m"]),
+                            "unit": "m",
+                            "plane_index": int(candidate["plane_index"]),
+                            "start_m": float(candidate["start_m"]),
+                            "end_m": float(candidate["end_m"]),
+                            "confidence": float(candidate["confidence"]),
+                            "evidence": str(candidate["evidence"]),
+                        }
+                        for candidate in opening_candidates
+                    ],
                     {"item": "wall_length_source", "surface": "walls", "quantity": 1.0 if len(qualified_wall_lengths) >= 4 else 0.0, "unit": wall_length_source},
                 ],
                 adjacency=[],

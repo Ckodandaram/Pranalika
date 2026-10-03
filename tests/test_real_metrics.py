@@ -8,6 +8,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from property_scan.data_loader import confidence_quality_gate, discover_capture_profiles, summarize_capture_profile
+from property_scan.pipeline.photo import build_photo_plan
 
 
 class TestRealSampleMetrics(unittest.TestCase):
@@ -40,6 +41,20 @@ class TestRealSampleMetrics(unittest.TestCase):
         self.assertFalse(confidence_quality_gate(0.90)["passed"])
         with self.assertRaises(ValueError):
             confidence_quality_gate(0.90, minimum_coverage=1.1)
+
+    def test_photo_output_keeps_opening_candidate_evidence_inspectable(self):
+        plan = build_photo_plan(ROOT / "data", property_id="real")
+        candidate_items = [
+            item
+            for room in plan.rooms
+            for item in room.scope_items
+            if item["item"] == "wall_opening_candidate"
+        ]
+        for item in candidate_items:
+            self.assertGreater(item["quantity"], 0.0)
+            self.assertLess(item["start_m"], item["end_m"])
+            self.assertGreaterEqual(item["confidence"], 0.0)
+            self.assertLessEqual(item["confidence"], 1.0)
 
 
 if __name__ == "__main__":

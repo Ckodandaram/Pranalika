@@ -1103,6 +1103,7 @@ def detect_wall_opening_candidates(
     *,
     bin_size_m: float = 0.1,
     minimum_gap_m: float = 0.45,
+    maximum_gap_m: float = 2.5,
 ) -> list[dict[str, float | int | str]]:
     """Find internal support gaps in qualified wall-plane occupancy.
 
@@ -1123,7 +1124,7 @@ def detect_wall_opening_candidates(
                 gap_start = index
             elif index in occupied_set and gap_start is not None:
                 width = (index - gap_start) * bin_size_m
-                if width >= minimum_gap_m:
+                if minimum_gap_m <= width <= maximum_gap_m:
                     candidates.append({
                         "plane_index": plane_index,
                         "start_m": round(float(plane["horizontal_min_m"]) + gap_start * bin_size_m, 4),

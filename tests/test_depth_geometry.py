@@ -124,6 +124,18 @@ class TestDepthGeometry(unittest.TestCase):
         self.assertAlmostEqual(candidates[0]["width_m"], 0.5)
         self.assertEqual(candidates[0]["evidence"], "wall-plane support gap")
 
+    def test_broad_wall_support_holes_are_rejected(self):
+        result = {
+            "planes": [{
+                "horizontal_min_m": 0.0,
+                "occupied_bins": [0, 1, 40, 41],
+            }]
+        }
+        self.assertEqual(
+            detect_wall_opening_candidates(result, maximum_gap_m=2.5),
+            [],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
