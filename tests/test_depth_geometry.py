@@ -16,6 +16,7 @@ from property_scan.data_loader import (
     estimate_floor_aligned_footprint,
     estimate_wall_surface_geometry,
     estimate_vertical_wall_planes,
+    estimate_trajectory_consistency,
     estimate_ransac_floor_plane_geometry,
     estimate_translated_depth_geometry,
 )
@@ -99,6 +100,13 @@ class TestDepthGeometry(unittest.TestCase):
         for plane in result["planes"]:
             self.assertGreater(plane["inliers"], 100)
             self.assertGreater(plane["vertical_span_m"], 0.3)
+
+    def test_trajectory_consistency_is_reported_for_real_capture(self):
+        root = ROOT / "data" / "single_scan_with_ceiling" / "c7d28f72c6"
+        result = estimate_trajectory_consistency(detect_capture_profile(root))
+        self.assertTrue(result["has_trajectory"])
+        self.assertGreater(result["path_length_m"], 0.0)
+        self.assertGreaterEqual(result["return_error_m"], 0.0)
 
 
 if __name__ == "__main__":

@@ -151,6 +151,34 @@ def _confidence_filtered_mask(profile: CaptureProfile, depth_path: Path, depth_m
     return valid, int(np.count_nonzero(valid))
 
 
+def _voxel_downsample(points: np.ndarray, voxel_size_m: float = 0.03) -> np.ndarray:
+    if points.size == 0 or voxel_size_m <= 0:
+        return points
+    voxel_ids = np.floor(points / voxel_size_m).astype(np.int64)
+    _, representative_indices = np.unique(voxel_ids, axis=0, return_index=True)
+    return points[np.sort(representative_indices)]
+
+
+def estimate_trajectory_consistency(profile: CaptureProfile) -> dict[str, float | bool]:
+    odometry = _read_odometry(profile.root / "odometry.csv")
+    if len(odometry) < 2:
+        return {"has_trajectory": False, "path_length_m": 0.0, "return_error_m": 0.0, "consistent": False}
+    first = np.array([float(odometry[0]["x"]), float(odometry[0]["y"]), float(odometry[0]["z"])])
+    last = np.array([float(odometry[-1]["x"]), float(odometry[-1]["y"]), float(odometry[-1]["z"])])
+    path_length = 0.0
+    for previous, current in zip(odometry, odometry[1:]):
+        previous_point = np.array([float(previous["x"]), float(previous["y"]), float(previous["z"])])
+        current_point = np.array([float(current["x"]), float(current["y"]), float(current["z"])])
+        path_length += float(np.linalg.norm(current_point - previous_point))
+    return_error = float(np.linalg.norm(last - first))
+    return {
+        "has_trajectory": True,
+        "path_length_m": round(path_length, 4),
+        "return_error_m": round(return_error, 4),
+        "consistent": bool(return_error <= max(0.25, path_length * 0.1)),
+    }
+
+
 def detect_capture_profile(scan_root: str | Path) -> CaptureProfile:
     root = Path(scan_root)
     if not root.exists():
@@ -594,7 +622,7 @@ def estimate_ransac_floor_plane_geometry(
             "normal_z": 0.0,
         }
 
-    cloud = np.concatenate(point_batches)
+    cloud = _voxel_downsample(np.concatenate(point_batches))
     if cloud.shape[0] < 3:
         return {
             "plane_found": False,
@@ -754,7 +782,7 @@ def estimate_floor_aligned_footprint(
             "polygon_xz_m": [],
         }
 
-    cloud = np.concatenate(points)
+    cloud = _voxel_downsample(np.concatenate(points))
     floor_height = float(floor["floor_height_m"])
     band = cloud[np.abs(cloud[:, 1] - floor_height) <= floor_band_m]
     if band.shape[0] < 3:
@@ -897,7 +925,7 @@ def estimate_wall_surface_geometry(
             "wall_horizontal_v_extent_m": 0.0,
         }
 
-    cloud = np.concatenate(wall_batches)
+    cloud = _voxel_downsample(np.concatenate(wall_batches))
     relative = cloud - floor_point
     height = cloud @ normal + float(floor.get("plane_offset", 0.0))
     wall_mask = (height >= floor_clearance_m) & (height <= max_wall_height_m)
@@ -980,7 +1008,7 @@ def estimate_vertical_wall_planes(
     if not clouds:
         return empty_result
 
-    cloud = np.concatenate(clouds)
+    cloud = _voxel_downsample(np.concatenate(clouds))
     height = cloud @ normal + float(floor["plane_offset"])
     candidate = cloud[(height >= 0.15) & (height <= 3.5)]
     empty_result["candidate_point_count"] = int(candidate.shape[0])
@@ -1140,6 +1168,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
     footprint_geometry = estimate_floor_aligned_footprint(profile)
     wall_geometry = estimate_wall_surface_geometry(profile)
     wall_planes = estimate_vertical_wall_planes(profile)
+    trajectory = estimate_trajectory_consistency(profile)
     return {
         "capture_name": profile.name,
         "scan_type": metrics.capture_type,
@@ -1158,6 +1187,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
         "floor_aligned_footprint": footprint_geometry,
         "wall_surface_geometry": wall_geometry,
         "vertical_wall_planes": wall_planes,
+        "trajectory_consistency": trajectory,
         "notes": metrics.notes,
     }
 
