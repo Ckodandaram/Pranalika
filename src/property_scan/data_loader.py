@@ -1054,12 +1054,19 @@ def estimate_vertical_wall_planes(
             best_candidate_vertical_span = span
             best_candidate_residual = residual
         if span >= minimum_vertical_span_m:
+            wall_direction = np.cross(normal, plane_normal)
+            wall_direction /= max(float(np.linalg.norm(wall_direction)), 1e-8)
+            horizontal_span = float(
+                np.percentile(points @ wall_direction, 98)
+                - np.percentile(points @ wall_direction, 2)
+            )
             planes.append({
                 "normal": [round(float(value), 5) for value in plane_normal],
                 "offset": round(offset, 5),
                 "inliers": int(points.shape[0]),
                 "vertical_span_m": round(span, 4),
                 "mean_residual_m": round(residual, 5),
+                "horizontal_span_m": round(max(0.0, horizontal_span), 4),
             })
         remaining = remaining[~inliers]
         sample_indices = np.linspace(0, remaining.shape[0] - 1, min(6000, remaining.shape[0]), dtype=int) if remaining.size else np.array([], dtype=int)

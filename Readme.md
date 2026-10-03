@@ -49,3 +49,18 @@ schema in `docs/ground_truth_manifest.example.json` to provide measured room dim
 widths. The CLI compares the generated plan to that manifest using the assignment tolerances and
 writes a separate benchmark report. It fails on room, wall, or opening identity mismatches rather
 than silently scoring an incomplete comparison.
+
+## Geometry quality gates
+
+The real-capture path now reports qualified vertical wall planes and their
+metric horizontal spans. Photo output uses those spans as wall measurements
+only when at least four planes pass the vertical-span and residual checks;
+otherwise it emits the room-area/aspect estimate with explicit fallback
+provenance. This prevents visually plausible but unqualified geometry from
+being presented as assignment-validated measurements.
+
+`property_scan.room_polygon.trace_room_polygons` independently converts
+snapped metric wall segments into bounded room faces using planar graph
+tracing and shoelace area. It is designed to become the topology layer for
+shared walls and wall-hosted openings; it does not copy implementation code
+from the reference repositories.

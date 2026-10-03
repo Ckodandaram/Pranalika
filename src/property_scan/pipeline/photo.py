@@ -138,7 +138,17 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         area_m2 = round(metrics.estimated_floor_area_m2, 2)
         ceiling_height = round(metrics.estimated_ceiling_height_m, 2)
 
-        wall_lengths = _estimate_wall_lengths(area_m2, baseline["aspect"])
+        qualified_wall_lengths = sorted(
+            float(plane["horizontal_span_m"])
+            for plane in wall_planes["planes"]
+            if float(plane["horizontal_span_m"]) > 0.2
+        )
+        if len(qualified_wall_lengths) >= 4:
+            wall_lengths = [round(value, 2) for value in qualified_wall_lengths[:4]]
+            wall_length_source = "qualified registered wall planes"
+        else:
+            wall_lengths = _estimate_wall_lengths(area_m2, baseline["aspect"])
+            wall_length_source = "room-area/aspect fallback; insufficient qualified wall planes"
         doors = [
             Opening(
                 id=f"opening_{index}_door",
@@ -201,6 +211,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     {"item": "wall_surface_u_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_horizontal_u_extent_m"]), 3), "unit": "m"},
                     {"item": "wall_surface_v_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_horizontal_v_extent_m"]), 3), "unit": "m"},
                     {"item": "vertical_wall_plane_count", "surface": "walls", "quantity": float(wall_planes["planes_found"]), "unit": "planes"},
+                    {"item": "wall_length_source", "surface": "walls", "quantity": 1.0 if len(qualified_wall_lengths) >= 4 else 0.0, "unit": wall_length_source},
                 ],
                 adjacency=[],
             )

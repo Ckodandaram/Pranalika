@@ -100,6 +100,7 @@ class TestDepthGeometry(unittest.TestCase):
         for plane in result["planes"]:
             self.assertGreater(plane["inliers"], 100)
             self.assertGreater(plane["vertical_span_m"], 0.3)
+            self.assertGreater(plane["horizontal_span_m"], 0.0)
 
     def test_trajectory_consistency_is_reported_for_real_capture(self):
         root = ROOT / "data" / "single_scan_with_ceiling" / "c7d28f72c6"
