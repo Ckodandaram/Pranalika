@@ -13,6 +13,7 @@ from property_scan.data_loader import (
     estimate_pose_registered_depth_geometry,
     estimate_real_room_geometry,
     estimate_floor_plane_geometry,
+    estimate_ransac_floor_plane_geometry,
     estimate_translated_depth_geometry,
 )
 
@@ -54,6 +55,14 @@ class TestDepthGeometry(unittest.TestCase):
         self.assertGreater(geometry["floor_inlier_count"], 0)
         self.assertGreater(geometry["floor_x_extent_m"], 0.0)
         self.assertGreater(geometry["floor_z_extent_m"], 0.0)
+
+    def test_ransac_floor_plane_is_found_in_real_capture(self):
+        root = ROOT / "data" / "single_scan_with_ceiling" / "c7d28f72c6"
+        geometry = estimate_ransac_floor_plane_geometry(detect_capture_profile(root))
+        self.assertTrue(geometry["plane_found"])
+        self.assertGreater(geometry["floor_inlier_count"], 0)
+        self.assertGreaterEqual(geometry["normal_y"], 0.85)
+        self.assertGreater(geometry["floor_x_extent_m"], 0.0)
 
 
 if __name__ == "__main__":

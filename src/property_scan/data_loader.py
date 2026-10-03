@@ -458,6 +458,164 @@ def estimate_floor_plane_geometry(profile: CaptureProfile, sample_limit: int = 2
     }
 
 
+def estimate_ransac_floor_plane_geometry(
+    profile: CaptureProfile,
+    sample_limit: int = 20,
+    iterations: int = 80,
+    distance_threshold_m: float = 0.04,
+) -> dict[str, float | int | bool]:
+    """Fit a dominant horizontal floor candidate with deterministic RANSAC.
+
+    The candidate is constrained to have a mostly vertical normal because the
+    assignment needs a floor reference. It is still only a sensor-derived
+    diagnostic until pose convention and capture calibration are verified.
+    """
+    depth_files = sorted((profile.root / "depth").glob("*.png"))[:sample_limit]
+    odometry = _read_odometry(profile.root / "odometry.csv")
+    if not depth_files or not odometry or not profile.camera_matrix:
+        return {
+            "plane_found": False,
+            "floor_height_m": 0.0,
+            "floor_inlier_count": 0,
+            "floor_inlier_ratio": 0.0,
+            "floor_x_extent_m": 0.0,
+            "floor_z_extent_m": 0.0,
+            "normal_y": 0.0,
+        }
+
+    fx, fy = profile.camera_matrix[0][0], profile.camera_matrix[1][1]
+    cx, cy = profile.camera_matrix[0][2], profile.camera_matrix[1][2]
+    if fx <= 0 or fy <= 0:
+        return {
+            "plane_found": False,
+            "floor_height_m": 0.0,
+            "floor_inlier_count": 0,
+            "floor_inlier_ratio": 0.0,
+            "floor_x_extent_m": 0.0,
+            "floor_z_extent_m": 0.0,
+            "normal_y": 0.0,
+        }
+
+    point_batches: list[np.ndarray] = []
+    for path, pose in zip(depth_files, odometry):
+        depth_mm = np.asarray(Image.open(path), dtype=np.float32)
+        valid = depth_mm > 0
+        if not np.any(valid):
+            continue
+        rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
+        z_m = depth_mm[valid] * 0.001
+        x_m = (columns[valid] - cx) * z_m / fx
+        y_m = (rows[valid] - cy) * z_m / fy
+        quaternion = tuple(float(pose.get(name, 0.0)) for name in ("qx", "qy", "qz", "qw"))
+        if quaternion[3] == 0.0 and quaternion[:3] == (0.0, 0.0, 0.0):
+            quaternion = (0.0, 0.0, 0.0, 1.0)
+        rotated_x, rotated_y, rotated_z = _rotate_points_by_quaternion(x_m, y_m, z_m, quaternion)
+        point_batches.append(
+            np.column_stack(
+                (
+                    rotated_x + float(pose["x"]),
+                    rotated_y + float(pose["y"]),
+                    rotated_z + float(pose["z"]),
+                )
+            )
+        )
+
+    if not point_batches:
+        return {
+            "plane_found": False,
+            "floor_height_m": 0.0,
+            "floor_inlier_count": 0,
+            "floor_inlier_ratio": 0.0,
+            "floor_x_extent_m": 0.0,
+            "floor_z_extent_m": 0.0,
+            "normal_y": 0.0,
+        }
+
+    cloud = np.concatenate(point_batches)
+    if cloud.shape[0] < 3:
+        return {
+            "plane_found": False,
+            "floor_height_m": 0.0,
+            "floor_inlier_count": 0,
+            "floor_inlier_ratio": 0.0,
+            "floor_x_extent_m": 0.0,
+            "floor_z_extent_m": 0.0,
+            "normal_y": 0.0,
+        }
+
+    # Deterministic spacing avoids nondeterministic benchmark output while
+    # keeping the plane fit bounded for the real 256x192 depth frames.
+    sample_indices = np.linspace(0, cloud.shape[0] - 1, min(4000, cloud.shape[0]), dtype=int)
+    sample = cloud[sample_indices]
+    best_inliers: np.ndarray | None = None
+    best_plane: tuple[np.ndarray, float] | None = None
+    for iteration in range(max(1, iterations)):
+        indices = np.array(
+            [
+                (iteration * 37) % sample.shape[0],
+                (iteration * 37 + 101) % sample.shape[0],
+                (iteration * 37 + 211) % sample.shape[0],
+            ],
+            dtype=int,
+        )
+        if len(set(indices.tolist())) < 3:
+            continue
+        first, second, third = sample[indices]
+        normal = np.cross(second - first, third - first)
+        norm = float(np.linalg.norm(normal))
+        if norm <= 1e-8:
+            continue
+        normal = normal / norm
+        if abs(float(normal[1])) < 0.85:
+            continue
+        if normal[1] < 0:
+            normal = -normal
+        offset = -float(np.dot(normal, first))
+        distances = np.abs(sample @ normal + offset)
+        inliers = distances <= distance_threshold_m
+        if best_inliers is None or int(inliers.sum()) > int(best_inliers.sum()):
+            best_inliers = inliers
+            best_plane = (normal, offset)
+
+    if best_inliers is None or best_plane is None or int(best_inliers.sum()) < 3:
+        return {
+            "plane_found": False,
+            "floor_height_m": 0.0,
+            "floor_inlier_count": 0,
+            "floor_inlier_ratio": 0.0,
+            "floor_x_extent_m": 0.0,
+            "floor_z_extent_m": 0.0,
+            "normal_y": 0.0,
+        }
+
+    normal, offset = best_plane
+    distances = np.abs(cloud @ normal + offset)
+    full_inliers = cloud[distances <= distance_threshold_m]
+    if full_inliers.size == 0:
+        return {
+            "plane_found": False,
+            "floor_height_m": 0.0,
+            "floor_inlier_count": 0,
+            "floor_inlier_ratio": 0.0,
+            "floor_x_extent_m": 0.0,
+            "floor_z_extent_m": 0.0,
+            "normal_y": float(normal[1]),
+        }
+
+    x_low, x_high = np.percentile(full_inliers[:, 0], [2.0, 98.0])
+    z_low, z_high = np.percentile(full_inliers[:, 2], [2.0, 98.0])
+    floor_height = float(np.median(full_inliers[:, 1]))
+    return {
+        "plane_found": True,
+        "floor_height_m": floor_height,
+        "floor_inlier_count": int(full_inliers.shape[0]),
+        "floor_inlier_ratio": float(full_inliers.shape[0] / cloud.shape[0]),
+        "floor_x_extent_m": float(max(0.0, x_high - x_low)),
+        "floor_z_extent_m": float(max(0.0, z_high - z_low)),
+        "normal_y": float(normal[1]),
+    }
+
+
 def _safe_image_stats(depth_dir: Path) -> tuple[float, float, float]:
     files = sorted(depth_dir.glob("*.png"))
     if not files:
@@ -540,6 +698,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
     translated_geometry = estimate_translated_depth_geometry(profile)
     pose_registered_geometry = estimate_pose_registered_depth_geometry(profile)
     floor_geometry = estimate_floor_plane_geometry(profile)
+    ransac_floor_geometry = estimate_ransac_floor_plane_geometry(profile)
     return {
         "capture_name": profile.name,
         "scan_type": metrics.capture_type,
@@ -553,6 +712,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
         "translated_depth_geometry": translated_geometry,
         "pose_registered_depth_geometry": pose_registered_geometry,
         "floor_plane_geometry": floor_geometry,
+        "ransac_floor_plane_geometry": ransac_floor_geometry,
         "notes": metrics.notes,
     }
 
