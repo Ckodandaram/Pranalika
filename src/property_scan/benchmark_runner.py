@@ -11,7 +11,12 @@ from property_scan.benchmark import (
     repeatability_rule,
     wall_length_rule,
 )
-from property_scan.data_loader import discover_capture_profiles, summarize_capture_profile
+from property_scan.data_loader import (
+    confidence_quality_gate,
+    discover_capture_profiles,
+    estimate_trajectory_consistency,
+    summarize_capture_profile,
+)
 
 
 @dataclass
@@ -168,4 +173,29 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
         ]
 
     suite = BenchmarkSuite(cases=cases)
-    return suite.run_all()
+    results = suite.run_all()
+    quality = []
+    for profile in profiles:
+        metrics = summarize_capture_profile(profile)
+        trajectory = estimate_trajectory_consistency(profile)
+        confidence = confidence_quality_gate(metrics.confidence_coverage)
+        quality.append({
+            "capture": profile.name,
+            "confidence_passed": bool(confidence["passed"]),
+            "trajectory_consistent": bool(trajectory["consistent"]),
+            "return_error_m": float(trajectory["return_error_m"]),
+        })
+    results["reconstruction_quality"] = {
+        "title": "Reconstruction quality gates",
+        "summary": {
+            "all_confidence_gates_passed": all(item["confidence_passed"] for item in quality),
+            "all_trajectories_consistent": all(item["trajectory_consistent"] for item in quality),
+            "validated_for_accuracy_claims": all(
+                item["confidence_passed"] and item["trajectory_consistent"]
+                for item in quality
+            ),
+            "captures": quality,
+        },
+        "metric_count": len(quality),
+    }
+    return results

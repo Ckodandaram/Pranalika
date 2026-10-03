@@ -35,6 +35,8 @@ class TestRealSampleMetrics(unittest.TestCase):
         self.assertIn("ceiling_height", report)
         self.assertIn("wall_length", report)
         self.assertIn("repeatability", report)
+        self.assertIn("reconstruction_quality", report)
+        self.assertIn("validated_for_accuracy_claims", report["reconstruction_quality"]["summary"])
 
     def test_confidence_quality_gate_flags_low_coverage(self):
         self.assertTrue(confidence_quality_gate(0.99)["passed"])

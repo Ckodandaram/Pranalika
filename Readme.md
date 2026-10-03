@@ -89,3 +89,9 @@ silently averaging disconnected rooms into one property layout.
 Photo plans now include this stitching result in `stitching_notes` and
 `layout_drift_m`; the hallway chain remains an inferred connection until
 overlap or doorway evidence is available.
+
+Benchmark output also includes `reconstruction_quality`. Accuracy summaries
+are accompanied by confidence-coverage and trajectory-consistency gates, and
+`validated_for_accuracy_claims` is false whenever any capture fails either
+gate. This keeps proxy benchmark numbers separate from trustworthy assignment
+claims.
