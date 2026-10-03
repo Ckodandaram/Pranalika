@@ -105,6 +105,8 @@ class PropertyPlan:
     whole_property_connections: List[Dict[str, str]] = field(default_factory=list)
     schema_version: str = "1.0.0"
     generated_by: str = "property_scan"
+    layout_drift_m: float = 0.0
+    stitching_notes: List[str] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -112,6 +114,8 @@ class PropertyPlan:
             "property_id": self.property_id,
             "schema_version": self.schema_version,
             "generated_by": self.generated_by,
+            "layout_drift_m": self.layout_drift_m,
+            "stitching_notes": self.stitching_notes,
             "rooms": [room.to_dict() for room in self.rooms],
             "whole_property_connections": self.whole_property_connections,
         }
