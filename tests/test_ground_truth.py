@@ -63,6 +63,9 @@ class TestGroundTruth(unittest.TestCase):
         self.assertEqual(report["metric_summary"]["failed_count"], 0)
         self.assertEqual(report["room_results"][0]["room_id"], "room_1")
         self.assertTrue(report["room_results"][0]["passed"])
+        self.assertEqual(report["room_summary"]["passed_count"], 1)
+        self.assertIn("quality_gates", report)
+        self.assertFalse(report["quality_gates"]["stitching"])
         validate_ground_truth_benchmark_report(report)
 
     def test_ground_truth_validator_rejects_missing_room_results(self):
@@ -72,6 +75,8 @@ class TestGroundTruth(unittest.TestCase):
                 "validated_against_independent_ground_truth": True,
                 "reports": {"ceiling_height": {}},
                 "metric_summary": {"metric_count": 1},
+                "rooms_evaluated": 1,
+                "quality_gates": {},
                 "assignment_readiness": {"blockers": [], "next_action": "none"},
             })
 

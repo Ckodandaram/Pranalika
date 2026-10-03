@@ -178,6 +178,10 @@ length, and opening width. The report validator requires those room-level
 results, aggregate metric coverage, and an explicit independent-validation
 marker before the CLI writes the artifact.
 
+They also include `room_summary` and `quality_gates`, making the distinction
+between measurement tolerance success and stitching/geometry readiness visible
+without inspecting the generated plan separately.
+
 Every emitted opening now includes `source` and `validated` fields. Current
 photo, video, and LiDAR baseline openings are explicitly marked as estimates;
 wall-support gap candidates remain separate evidence until an opening detector

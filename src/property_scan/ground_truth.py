@@ -144,12 +144,23 @@ def validate_ground_truth_benchmark_report(report: dict[str, Any]) -> None:
         raise ValueError("ground-truth benchmark requires metric reports")
     if not isinstance(report.get("room_results"), list) or not report["room_results"]:
         raise ValueError("ground-truth benchmark requires room-level results")
+    room_results = report["room_results"]
+    room_ids = [item.get("room_id") for item in room_results if isinstance(item, dict)]
+    if len(room_ids) != len(room_results) or any(not room_id for room_id in room_ids):
+        raise ValueError("ground-truth room results require room ids")
+    if len(set(room_ids)) != len(room_ids):
+        raise ValueError("ground-truth benchmark contains duplicate room results")
+    if report.get("rooms_evaluated") != len(room_results):
+        raise ValueError("ground-truth room result count does not match rooms_evaluated")
     summary = report.get("metric_summary")
     if not isinstance(summary, dict) or summary.get("metric_count", 0) <= 0:
         raise ValueError("ground-truth benchmark requires metric summary")
     readiness = report.get("assignment_readiness")
     if not isinstance(readiness, dict) or "blockers" not in readiness or "next_action" not in readiness:
         raise ValueError("ground-truth benchmark requires assignment readiness details")
+    gates = report.get("quality_gates")
+    if not isinstance(gates, dict):
+        raise ValueError("ground-truth benchmark requires quality gate status")
 
 
 def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManifest) -> dict[str, Any]:
@@ -236,6 +247,13 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
         sum(1 for metric in report["metrics"] if metric["passed"])
         for report in reports.values()
     )
+    passed_rooms = sum(1 for room in room_results if room["passed"])
+    quality_gates = {
+        "measurement_tolerances": passed,
+        "stitching": bool(plan.quality_gates.get("stitching", False)),
+        "room_geometry": bool(plan.quality_gates.get("room_geometry", False)),
+        "independent_ground_truth": True,
+    }
     return {
         "schema_version": "1.1.0",
         "ground_truth_source": manifest.source,
@@ -252,6 +270,13 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
             "failed_count": total_metrics - passed_metrics,
             "pass_coverage": passed_metrics / total_metrics if total_metrics else 0.0,
         },
+        "room_summary": {
+            "room_count": len(room_results),
+            "passed_count": passed_rooms,
+            "failed_count": len(room_results) - passed_rooms,
+            "pass_coverage": passed_rooms / len(room_results) if room_results else 0.0,
+        },
+        "quality_gates": quality_gates,
         "validated_against_independent_ground_truth": True,
         "assignment_readiness": {
             "ready": False,
