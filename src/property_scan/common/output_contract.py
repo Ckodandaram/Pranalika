@@ -129,6 +129,7 @@ class PropertyPlan:
             "stitching_notes": self.stitching_notes,
             "quality_gates": self.quality_gates,
             "measurement_claims_validated": self.measurement_claims_validated,
+            "validation_summary": plan_validation_summary(self),
             "rooms": [room.to_dict() for room in self.rooms],
             "whole_property_connections": self.whole_property_connections,
         }
@@ -184,5 +185,28 @@ def validate_plan_contract(plan: PropertyPlan) -> None:
         target = connection.get("to")
         if source not in room_ids or target not in room_ids:
             raise ValueError("whole-property connection references an unknown room")
+        if source == target:
+            raise ValueError("whole-property connection cannot link a room to itself")
+        source_room = next(room for room in plan.rooms if room.id == source)
+        target_room = next(room for room in plan.rooms if room.id == target)
+        if target not in source_room.adjacency or source not in target_room.adjacency:
+            raise ValueError("whole-property connection must match bidirectional room adjacency")
     if not math.isfinite(plan.layout_drift_m) or plan.layout_drift_m < 0:
         raise ValueError("layout_drift_m must be finite and non-negative")
+
+
+def plan_validation_summary(plan: PropertyPlan) -> Dict[str, Any]:
+    validate_plan_contract(plan)
+    connection_count = len(plan.whole_property_connections)
+    verified_connections = sum(
+        1 for connection in plan.whole_property_connections
+        if connection.get("verified", True)
+    )
+    return {
+        "valid": True,
+        "room_count": len(plan.rooms),
+        "connection_count": connection_count,
+        "verified_connection_count": verified_connections,
+        "all_connections_verified": verified_connections == connection_count,
+        "measurement_claims_validated": plan.measurement_claims_validated,
+    }

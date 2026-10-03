@@ -145,6 +145,9 @@ The contract also verifies that an opening's physical width fits within its
 host wall at the normalized position, and that whole-property connections
 reference rooms present in the same plan.
 
+CLI plan JSON also includes `validation_summary` with room count, connection
+count, verified-connection count, and measurement-claim status.
+
 When an independent ground-truth manifest is supplied, the CLI now validates
 the generated plan before comparison and updates the persisted plan with the
 ground-truth gate result. `measurement_claims_validated` becomes true only

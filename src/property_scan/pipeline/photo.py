@@ -320,7 +320,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     ],
                     {"item": "wall_length_source", "surface": "walls", "quantity": 1.0 if len(qualified_wall_lengths) >= 4 else 0.0, "unit": wall_length_source},
                 ],
-                adjacency=[],
+                adjacency=([f"room_{index - 1}"] if index > 1 else []) + ([f"room_{index + 1}"] if index < len(sessions) else []),
             )
         )
 
@@ -371,7 +371,7 @@ def build_photo_plan(property_root: str | Path, property_id: str = "property") -
             scope_items=[
                 {"item": "capture_review", "surface": "room", "quantity": float(max(1, image_count)), "unit": "images"},
             ],
-            adjacency=[],
+            adjacency=([f"room_{index - 1}"] if index > 1 else []) + ([f"room_{index + 1}"] if index < len(room_dirs) else []),
         )
         rooms.append(room)
 

@@ -12,7 +12,7 @@ if str(SRC) not in sys.path:
 
 from property_scan.cli import main
 from property_scan.pipeline import build_lidar_plan, build_photo_plan, build_video_plan
-from property_scan.common.output_contract import Measurement, Opening, PropertyPlan, Room, validate_plan_contract
+from property_scan.common.output_contract import Measurement, Opening, PropertyPlan, Room, plan_validation_summary, validate_plan_contract
 
 
 class TestPropertyPlanContract(unittest.TestCase):
@@ -28,6 +28,12 @@ class TestPropertyPlanContract(unittest.TestCase):
             plan = build_photo_plan(tmpdir, property_id="demo")
             payload = plan.to_dict()
             self.assertIn("rooms", payload)
+            self.assertIn("whole_property_connections", payload)
+            self.assertIn("stitching_notes", payload)
+            self.assertIn("quality_gates", payload)
+            self.assertIn("validation_summary", payload)
+            self.assertFalse(payload["measurement_claims_validated"])
+            self.assertEqual(payload["capture_tier"], "photo")
 
     def test_plan_contract_rejects_duplicate_rooms(self):
         room = Room("room_1", "Room", Measurement(10), Measurement(2.7))
@@ -71,13 +77,19 @@ class TestPropertyPlanContract(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "unknown room"):
             validate_plan_contract(plan)
-            self.assertIn("whole_property_connections", payload)
-            self.assertIn("stitching_notes", payload)
-            self.assertTrue(any("stitching connected=True" in note for note in payload["stitching_notes"]))
-            self.assertIn("quality_gates", payload)
-            self.assertFalse(payload["measurement_claims_validated"])
-            self.assertGreater(len(payload["rooms"]), 0)
-            self.assertEqual(payload["capture_tier"], "photo")
+
+    def test_plan_validation_summary_counts_verified_connections(self):
+        room_a = Room("room_1", "A", Measurement(10), Measurement(2.7), adjacency=["room_2"])
+        room_b = Room("room_2", "B", Measurement(10), Measurement(2.7), adjacency=["room_1"])
+        plan = PropertyPlan(
+            "photo",
+            "demo",
+            [room_a, room_b],
+            whole_property_connections=[{"from": "room_1", "to": "room_2", "verified": False}],
+        )
+        summary = plan_validation_summary(plan)
+        self.assertEqual(summary["connection_count"], 1)
+        self.assertEqual(summary["verified_connection_count"], 0)
 
     def test_video_plan_has_measurements(self):
         with tempfile.TemporaryDirectory() as tmpdir:

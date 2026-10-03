@@ -90,7 +90,7 @@ def build_video_plan(video_path: str | Path, property_id: str = "property") -> P
         capture_tier="video",
         property_id=property_id,
         rooms=rooms,
-        whole_property_connections=[{"from": "room_1", "to": "room_2", "type": "hallway"}],
+        whole_property_connections=[{"from": "room_1", "to": "room_2", "type": "hallway", "drift_m": drift_m, "verified": stitching["passed"]}],
         layout_drift_m=drift_m,
         stitching_notes=[
             "video pose graph was evaluated for drift using trajectory spread and loop-closure consistency",

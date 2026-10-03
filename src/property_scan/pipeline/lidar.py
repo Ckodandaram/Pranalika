@@ -86,7 +86,7 @@ def build_lidar_plan(lidar_root: str | Path, property_id: str = "property") -> P
         capture_tier="lidar",
         property_id=property_id,
         rooms=rooms,
-        whole_property_connections=[{"from": "room_1", "to": "room_2", "type": "doorway"}],
+        whole_property_connections=[{"from": "room_1", "to": "room_2", "type": "doorway", "drift_m": 0.01, "verified": stitching["passed"]}],
         layout_drift_m=0.01,
         stitching_notes=[
             "LiDAR room graph stitched using high-confidence metric room boundaries and door adjacency.",
