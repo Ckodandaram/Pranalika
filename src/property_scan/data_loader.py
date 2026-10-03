@@ -223,6 +223,16 @@ class ScanMetrics:
             self.notes = []
 
 
+def confidence_quality_gate(confidence_coverage: float, minimum_coverage: float = 0.95) -> dict[str, float | bool]:
+    if not 0.0 <= minimum_coverage <= 1.0:
+        raise ValueError("minimum_coverage must be between 0 and 1")
+    return {
+        "coverage": float(confidence_coverage),
+        "minimum_coverage": float(minimum_coverage),
+        "passed": bool(confidence_coverage >= minimum_coverage),
+    }
+
+
 def estimate_projected_depth_geometry(profile: CaptureProfile, sample_limit: int = 20) -> dict[str, float | int]:
     """Estimate camera-frame geometry from calibrated depth pixels.
 
@@ -808,7 +818,7 @@ def _safe_image_stats(depth_dir: Path) -> tuple[float, float, float]:
     return median, depth_min, depth_max
 
 
-def summarize_capture_profile(profile: CaptureProfile) -> ScanMetrics:
+def summarize_capture_profile(profile: CaptureProfile, minimum_confidence_coverage: float = 0.95) -> ScanMetrics:
     median_depth, depth_min, depth_max = _safe_image_stats(profile.root / "depth")
     depth_range = depth_max - depth_min if depth_max > depth_min else 0.0
     confidence_dir = profile.root / "confidence"
@@ -839,6 +849,11 @@ def summarize_capture_profile(profile: CaptureProfile) -> ScanMetrics:
         floor_area = max(9.0, 9.0 + profile.frame_count / 600.0)
 
     notes: list[str] = []
+    quality = confidence_quality_gate(coverage, minimum_confidence_coverage)
+    if not quality["passed"]:
+        notes.append(
+            f"confidence coverage below quality gate: {coverage:.3f} < {minimum_confidence_coverage:.3f}"
+        )
     if capture_type == "floor_only":
         notes.append("floor-only capture; ceiling height inferred from depth spread")
     elif capture_type == "with_ceiling":
@@ -862,6 +877,7 @@ def summarize_capture_profile(profile: CaptureProfile) -> ScanMetrics:
 def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str | list[str]]:
     profile = detect_capture_profile(scan_root)
     metrics = summarize_capture_profile(profile)
+    confidence_quality = confidence_quality_gate(metrics.confidence_coverage)
     projected_geometry = estimate_projected_depth_geometry(profile)
     translated_geometry = estimate_translated_depth_geometry(profile)
     pose_registered_geometry = estimate_pose_registered_depth_geometry(profile)
@@ -875,6 +891,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
         "median_depth_mm": metrics.median_depth_mm,
         "depth_range_mm": metrics.depth_range_mm,
         "confidence_coverage": metrics.confidence_coverage,
+        "confidence_quality": confidence_quality,
         "estimated_floor_area_m2": metrics.estimated_floor_area_m2,
         "estimated_ceiling_height_m": metrics.estimated_ceiling_height_m,
         **projected_geometry,

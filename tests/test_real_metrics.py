@@ -7,7 +7,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from property_scan.data_loader import discover_capture_profiles, summarize_capture_profile
+from property_scan.data_loader import confidence_quality_gate, discover_capture_profiles, summarize_capture_profile
 
 
 class TestRealSampleMetrics(unittest.TestCase):
@@ -34,6 +34,12 @@ class TestRealSampleMetrics(unittest.TestCase):
         self.assertIn("ceiling_height", report)
         self.assertIn("wall_length", report)
         self.assertIn("repeatability", report)
+
+    def test_confidence_quality_gate_flags_low_coverage(self):
+        self.assertTrue(confidence_quality_gate(0.99)["passed"])
+        self.assertFalse(confidence_quality_gate(0.90)["passed"])
+        with self.assertRaises(ValueError):
+            confidence_quality_gate(0.90, minimum_coverage=1.1)
 
 
 if __name__ == "__main__":

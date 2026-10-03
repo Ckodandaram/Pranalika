@@ -6,6 +6,7 @@ from typing import Iterable
 from property_scan.common.output_contract import Measurement, Opening, PropertyPlan, Room, confidence_interval_for_tier
 from property_scan.data_loader import (
     discover_capture_profiles,
+    confidence_quality_gate,
     estimate_projected_depth_geometry,
     estimate_pose_registered_depth_geometry,
     estimate_floor_plane_geometry,
@@ -123,6 +124,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
 
         baseline = _ROOM_TYPE_BASELINES[_room_type_from_name(room_type)]
         metrics = summarize_capture_profile(session)
+        confidence_quality = confidence_quality_gate(metrics.confidence_coverage)
         depth_geometry = estimate_projected_depth_geometry(session)
         translated_geometry = estimate_translated_depth_geometry(session)
         pose_registered_geometry = estimate_pose_registered_depth_geometry(session)
@@ -165,6 +167,8 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     {"item": "capture_geometry", "surface": "room", "quantity": float(session.frame_count), "unit": "frames"},
                     {"item": "scan_depth", "surface": "room", "quantity": 1.0 if session.has_depth else 0.0, "unit": "coverage"},
                     {"item": "confidence_coverage", "surface": "room", "quantity": round(metrics.confidence_coverage, 3), "unit": "ratio"},
+                    {"item": "confidence_quality_gate", "surface": "room", "quantity": 1.0 if confidence_quality["passed"] else 0.0, "unit": "passed"},
+                    {"item": "confidence_minimum_coverage", "surface": "room", "quantity": float(confidence_quality["minimum_coverage"]), "unit": "ratio"},
                     {"item": "depth_projected_x_extent", "surface": "room", "quantity": round(float(depth_geometry["x_extent_m"]), 3), "unit": "m"},
                     {"item": "depth_projected_y_extent", "surface": "room", "quantity": round(float(depth_geometry["y_extent_m"]), 3), "unit": "m"},
                     {"item": "depth_projected_z_extent", "surface": "room", "quantity": round(float(depth_geometry["z_extent_m"]), 3), "unit": "m"},
