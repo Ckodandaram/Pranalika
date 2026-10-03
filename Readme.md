@@ -173,6 +173,11 @@ comparison alone does not set the plan's validated claim flag: stitching and
 room-geometry gates must also pass. The report lists each remaining blocker
 and the next action explicitly.
 
+Independent reports also retain per-room results for ceiling height, wall
+length, and opening width. The report validator requires those room-level
+results, aggregate metric coverage, and an explicit independent-validation
+marker before the CLI writes the artifact.
+
 Every emitted opening now includes `source` and `validated` fields. Current
 photo, video, and LiDAR baseline openings are explicitly marked as estimates;
 wall-support gap candidates remain separate evidence until an opening detector

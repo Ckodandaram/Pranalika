@@ -134,6 +134,24 @@ def _report_dict(report: BenchmarkReport) -> dict[str, Any]:
     return report.to_dict()
 
 
+def validate_ground_truth_benchmark_report(report: dict[str, Any]) -> None:
+    """Reject incomplete independent benchmark artifacts before persistence."""
+    if report.get("schema_version") != "1.1.0":
+        raise ValueError("ground-truth benchmark has an unsupported schema version")
+    if report.get("validated_against_independent_ground_truth") is not True:
+        raise ValueError("ground-truth benchmark must declare independent validation")
+    if not isinstance(report.get("reports"), dict) or not report["reports"]:
+        raise ValueError("ground-truth benchmark requires metric reports")
+    if not isinstance(report.get("room_results"), list) or not report["room_results"]:
+        raise ValueError("ground-truth benchmark requires room-level results")
+    summary = report.get("metric_summary")
+    if not isinstance(summary, dict) or summary.get("metric_count", 0) <= 0:
+        raise ValueError("ground-truth benchmark requires metric summary")
+    readiness = report.get("assignment_readiness")
+    if not isinstance(readiness, dict) or "blockers" not in readiness or "next_action" not in readiness:
+        raise ValueError("ground-truth benchmark requires assignment readiness details")
+
+
 def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManifest) -> dict[str, Any]:
     validate_plan_contract(plan)
     predicted_rooms = {room.id: room for room in plan.rooms}
@@ -152,6 +170,7 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
     wall_predicted: list[float] = []
     opening_actual: list[float] = []
     opening_predicted: list[float] = []
+    room_results: list[dict[str, Any]] = []
 
     for room_id, expected in expected_rooms.items():
         predicted = predicted_rooms[room_id]
@@ -173,6 +192,29 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
         for key, expected_opening in expected_openings.items():
             opening_actual.append(expected_opening.width_m)
             opening_predicted.append(predicted_openings[key].width.value)
+        room_reports = {
+            "ceiling_height": _report_dict(
+                ceiling_height_rule([expected.ceiling_height_m], [predicted.ceiling_height.value])
+            ),
+            "wall_length": _report_dict(
+                wall_length_rule(
+                    expected.wall_lengths_m,
+                    [wall.value for wall in predicted.walls],
+                )
+            ),
+        }
+        if expected.openings:
+            room_reports["opening_width"] = _report_dict(
+                opening_width_rule(
+                    [opening.width_m for opening in expected.openings],
+                    [predicted_openings[(opening.type, opening.location)].width.value for opening in expected.openings],
+                )
+            )
+        room_results.append({
+            "room_id": room_id,
+            "passed": all(item["summary"]["passed"] for item in room_reports.values()),
+            "reports": room_reports,
+        })
 
     reports = {
         "ceiling_height": _report_dict(ceiling_height_rule(ceiling_actual, ceiling_predicted)),
@@ -201,6 +243,7 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
         "capture_tier": plan.capture_tier,
         "rooms_evaluated": len(expected_rooms),
         "reports": reports,
+        "room_results": room_results,
         "passed": passed,
         "metric_summary": {
             "case_count": len(reports),

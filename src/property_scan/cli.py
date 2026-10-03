@@ -4,7 +4,11 @@ import argparse
 import json
 from pathlib import Path
 
-from property_scan.ground_truth import compare_plan_to_ground_truth, load_ground_truth
+from property_scan.ground_truth import (
+    compare_plan_to_ground_truth,
+    load_ground_truth,
+    validate_ground_truth_benchmark_report,
+)
 from property_scan.benchmark_runner import run_assignment_benchmark, validate_assignment_benchmark_report
 from property_scan.pipeline import build_lidar_plan, build_photo_plan, build_video_plan
 from property_scan.common.output_contract import validate_plan_contract
@@ -39,6 +43,7 @@ def main() -> int:
         report = compare_plan_to_ground_truth(plan, load_ground_truth(args.ground_truth))
         if report["metric_summary"]["metric_count"] == 0:
             raise ValueError("ground-truth benchmark produced no metrics")
+        validate_ground_truth_benchmark_report(report)
         plan.quality_gates["independent_ground_truth"] = bool(report["passed"])
         plan.measurement_claims_validated = bool(
             report["passed"]

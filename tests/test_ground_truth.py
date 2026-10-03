@@ -15,6 +15,7 @@ from property_scan.ground_truth import (
     GroundTruthRoom,
     compare_plan_to_ground_truth,
     load_ground_truth,
+    validate_ground_truth_benchmark_report,
 )
 
 
@@ -60,6 +61,19 @@ class TestGroundTruth(unittest.TestCase):
         self.assertFalse(report["assignment_readiness"]["ready"])
         self.assertEqual(report["metric_summary"]["metric_count"], 6)
         self.assertEqual(report["metric_summary"]["failed_count"], 0)
+        self.assertEqual(report["room_results"][0]["room_id"], "room_1")
+        self.assertTrue(report["room_results"][0]["passed"])
+        validate_ground_truth_benchmark_report(report)
+
+    def test_ground_truth_validator_rejects_missing_room_results(self):
+        with self.assertRaisesRegex(ValueError, "room-level results"):
+            validate_ground_truth_benchmark_report({
+                "schema_version": "1.1.0",
+                "validated_against_independent_ground_truth": True,
+                "reports": {"ceiling_height": {}},
+                "metric_summary": {"metric_count": 1},
+                "assignment_readiness": {"blockers": [], "next_action": "none"},
+            })
 
     def test_manifest_rejects_duplicate_room_ids(self):
         payload = {
