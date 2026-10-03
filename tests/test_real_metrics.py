@@ -26,6 +26,15 @@ class TestRealSampleMetrics(unittest.TestCase):
         self.assertGreater(geometry["estimated_ceiling_height_m"], 2.5)
         self.assertGreater(geometry["confidence_coverage"], 0.0)
 
+    def test_assignment_benchmark_runner_executes(self):
+        from property_scan.benchmark_runner import run_assignment_benchmark
+
+        report = run_assignment_benchmark(ROOT / "data")
+        self.assertIn("opening_width", report)
+        self.assertIn("ceiling_height", report)
+        self.assertIn("wall_length", report)
+        self.assertIn("repeatability", report)
+
 
 if __name__ == "__main__":
     unittest.main()
