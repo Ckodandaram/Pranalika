@@ -14,6 +14,7 @@ from property_scan.data_loader import (
     estimate_wall_surface_geometry,
     estimate_vertical_wall_planes,
     detect_wall_opening_candidates,
+    geometry_quality_gate,
     estimate_ransac_floor_plane_geometry,
     estimate_translated_depth_geometry,
     summarize_capture_profile,
@@ -190,6 +191,11 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
             if wall_evidence_area > 0.0 and boundary_area > 0.0
             else None
         )
+        geometry_quality = geometry_quality_gate(
+            metrics.confidence_coverage,
+            int(wall_planes["planes_found"]),
+            area_disagreement_ratio,
+        )
         doors = [
             Opening(
                 id=f"opening_{index}_door",
@@ -267,6 +273,13 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                         "wall_evidence_area_m2": wall_evidence_area,
                         "consistent": area_disagreement_ratio is not None and area_disagreement_ratio <= 0.25,
                         "validated": False,
+                    },
+                    {
+                        "item": "room_geometry_quality_gate",
+                        "surface": "room",
+                        "quantity": 1.0 if geometry_quality["passed"] else 0.0,
+                        "unit": "passed",
+                        **geometry_quality,
                     },
                     {"item": "wall_surface_points", "surface": "walls", "quantity": float(wall_geometry["wall_point_count"]), "unit": "points"},
                     {"item": "wall_surface_vertical_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_vertical_extent_m"]), 3), "unit": "m"},

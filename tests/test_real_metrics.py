@@ -88,6 +88,17 @@ class TestRealSampleMetrics(unittest.TestCase):
             self.assertLessEqual(item["quantity"], 1.0)
             self.assertFalse(item["validated"])
 
+    def test_photo_output_reports_room_geometry_quality_gate(self):
+        plan = build_photo_plan(ROOT / "data", property_id="real")
+        gates = [
+            item
+            for room in plan.rooms
+            for item in room.scope_items
+            if item["item"] == "room_geometry_quality_gate"
+        ]
+        self.assertEqual(len(gates), len(plan.rooms))
+        self.assertTrue(all(not item["passed"] for item in gates))
+
 
 if __name__ == "__main__":
     unittest.main()

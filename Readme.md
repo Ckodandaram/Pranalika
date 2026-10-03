@@ -119,3 +119,8 @@ Each room also reports `boundary_wall_evidence_comparison`, including the
 footprint area, the area implied by qualified wall spans, their disagreement
 ratio, and a conservative consistency flag. This is a cross-check, not an
 accuracy claim.
+
+`room_geometry_quality_gate` combines confidence coverage, a minimum of four
+qualified wall planes, and no more than 25% footprint/wall-area disagreement.
+Only rooms passing all three checks are eligible for future metric promotion;
+the current sample captures remain diagnostic.

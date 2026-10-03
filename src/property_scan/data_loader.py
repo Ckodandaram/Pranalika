@@ -262,6 +262,34 @@ def confidence_quality_gate(confidence_coverage: float, minimum_coverage: float 
     }
 
 
+def geometry_quality_gate(
+    confidence_coverage: float,
+    wall_plane_count: int,
+    area_disagreement_ratio: float | None,
+    *,
+    minimum_confidence: float = 0.95,
+    minimum_wall_planes: int = 4,
+    maximum_area_disagreement: float = 0.25,
+) -> dict[str, float | int | bool | None]:
+    """Gate room-boundary evidence before it is used as a measurement."""
+    confidence_passed = confidence_coverage >= minimum_confidence
+    wall_support_passed = wall_plane_count >= minimum_wall_planes
+    area_passed = (
+        area_disagreement_ratio is not None
+        and area_disagreement_ratio <= maximum_area_disagreement
+    )
+    return {
+        "passed": confidence_passed and wall_support_passed and area_passed,
+        "confidence_passed": confidence_passed,
+        "wall_support_passed": wall_support_passed,
+        "area_consistency_passed": area_passed,
+        "confidence_coverage": float(confidence_coverage),
+        "wall_plane_count": int(wall_plane_count),
+        "area_disagreement_ratio": area_disagreement_ratio,
+        "maximum_area_disagreement": float(maximum_area_disagreement),
+    }
+
+
 def estimate_projected_depth_geometry(profile: CaptureProfile, sample_limit: int = 20) -> dict[str, float | int]:
     """Estimate camera-frame geometry from calibrated depth pixels.
 
