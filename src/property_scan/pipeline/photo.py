@@ -180,6 +180,16 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         else:
             wall_lengths = _estimate_wall_lengths(area_m2, baseline["aspect"])
             wall_length_source = "room-area/aspect fallback; insufficient qualified wall planes"
+        wall_evidence_area = 0.0
+        if len(qualified_wall_lengths) >= 4:
+            width, depth = sorted(qualified_wall_lengths[:4])[0], sorted(qualified_wall_lengths[:4])[-1]
+            wall_evidence_area = round(width * depth, 4)
+        boundary_area = float(footprint_geometry["footprint_area_m2"])
+        area_disagreement_ratio = (
+            abs(boundary_area - wall_evidence_area) / max(boundary_area, wall_evidence_area)
+            if wall_evidence_area > 0.0 and boundary_area > 0.0
+            else None
+        )
         doors = [
             Opening(
                 id=f"opening_{index}_door",
@@ -246,6 +256,16 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                         "horizontal_axis_u": footprint_geometry.get("horizontal_axis_u", []),
                         "horizontal_axis_v": footprint_geometry.get("horizontal_axis_v", []),
                         "evidence": "floor-aligned registered-depth footprint",
+                        "validated": False,
+                    },
+                    {
+                        "item": "boundary_wall_evidence_comparison",
+                        "surface": "room",
+                        "quantity": float(area_disagreement_ratio or 0.0),
+                        "unit": "ratio",
+                        "boundary_area_m2": boundary_area,
+                        "wall_evidence_area_m2": wall_evidence_area,
+                        "consistent": area_disagreement_ratio is not None and area_disagreement_ratio <= 0.25,
                         "validated": False,
                     },
                     {"item": "wall_surface_points", "surface": "walls", "quantity": float(wall_geometry["wall_point_count"]), "unit": "points"},

@@ -114,3 +114,8 @@ Photo rooms also expose a `room_boundary_candidate` scope item containing the
 floor-aligned registered-depth polygon, metric area, horizontal basis vectors,
 and a `validated` flag. The polygon is retained as reconstruction evidence
 until wall topology and independent measurements confirm it.
+
+Each room also reports `boundary_wall_evidence_comparison`, including the
+footprint area, the area implied by qualified wall spans, their disagreement
+ratio, and a conservative consistency flag. This is a cross-check, not an
+accuracy claim.

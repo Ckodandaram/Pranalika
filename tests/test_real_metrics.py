@@ -74,6 +74,20 @@ class TestRealSampleMetrics(unittest.TestCase):
             self.assertGreaterEqual(len(item["polygon"]), 3)
             self.assertFalse(item["validated"])
 
+    def test_photo_output_compares_boundary_and_wall_evidence(self):
+        plan = build_photo_plan(ROOT / "data", property_id="real")
+        comparisons = [
+            item
+            for room in plan.rooms
+            for item in room.scope_items
+            if item["item"] == "boundary_wall_evidence_comparison"
+        ]
+        self.assertEqual(len(comparisons), len(plan.rooms))
+        for item in comparisons:
+            self.assertGreaterEqual(item["quantity"], 0.0)
+            self.assertLessEqual(item["quantity"], 1.0)
+            self.assertFalse(item["validated"])
+
 
 if __name__ == "__main__":
     unittest.main()
