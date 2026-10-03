@@ -152,3 +152,7 @@ Every emitted opening now includes `source` and `validated` fields. Current
 photo, video, and LiDAR baseline openings are explicitly marked as estimates;
 wall-support gap candidates remain separate evidence until an opening detector
 and independent measurements validate them.
+
+Openings also carry a `wall_index` and normalized `position_ratio`. Contract
+validation rejects references to missing walls or positions outside `[0, 1]`,
+so downstream editors can host each opening on a specific wall segment.

@@ -102,6 +102,8 @@ def _estimate_openings(room_dir: Path, room_type: str, image_count: int) -> list
                 height=Measurement(value=round(baseline["door_height"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_height"])),
                 location="south" if idx == 0 else "east",
                 source="room baseline heuristic",
+                wall_index=0,
+                position_ratio=0.5,
             )
         )
     for idx in range(window_count):
@@ -113,6 +115,8 @@ def _estimate_openings(room_dir: Path, room_type: str, image_count: int) -> list
                 height=Measurement(value=1.15, unit="m", confidence=confidence_interval_for_tier("photo", 1.15)),
                 location="north" if idx == 0 else "west",
                 source="room baseline heuristic",
+                wall_index=2,
+                position_ratio=0.5,
             )
         )
     if not openings and image_count > 0:
@@ -124,6 +128,8 @@ def _estimate_openings(room_dir: Path, room_type: str, image_count: int) -> list
                 height=Measurement(value=round(baseline["door_height"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_height"])),
                 location="south",
                 source="room baseline heuristic",
+                wall_index=0,
+                position_ratio=0.5,
             )
         )
     return openings
@@ -209,6 +215,8 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                 height=Measurement(value=round(baseline["door_height"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_height"])),
                 location="south",
                 source="room baseline heuristic",
+                wall_index=0,
+                position_ratio=0.5,
             )
         ]
         if session.frame_count > 3000:
@@ -220,6 +228,8 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     height=Measurement(value=1.2, unit="m", confidence=confidence_interval_for_tier("photo", 1.2)),
                     location="north",
                     source="room baseline heuristic",
+                    wall_index=2,
+                    position_ratio=0.5,
                 )
             )
 

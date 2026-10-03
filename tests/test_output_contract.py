@@ -56,6 +56,8 @@ class TestPropertyPlanContract(unittest.TestCase):
             self.assertGreater(len(room.openings), 0)
             self.assertFalse(room.openings[0].validated)
             self.assertIn("source", room.openings[0].to_dict())
+            self.assertIn("wall_index", room.openings[0].to_dict())
+            self.assertIn("position_ratio", room.openings[0].to_dict())
             self.assertTrue(any("stitching connected=True" in note for note in plan.stitching_notes))
             self.assertIn("quality_gates", plan.to_dict())
 

@@ -63,6 +63,8 @@ class Opening:
     location: str
     source: str = "estimated"
     validated: bool = False
+    wall_index: int | None = None
+    position_ratio: float | None = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -73,6 +75,8 @@ class Opening:
             "location": self.location,
             "source": self.source,
             "validated": self.validated,
+            "wall_index": self.wall_index,
+            "position_ratio": self.position_ratio,
         }
 
 
@@ -165,5 +169,9 @@ def validate_plan_contract(plan: PropertyPlan) -> None:
                 raise ValueError(f"{room.id} opening width must be finite and positive")
             if not math.isfinite(opening.height.value) or opening.height.value <= 0:
                 raise ValueError(f"{room.id} opening height must be finite and positive")
+            if opening.wall_index is not None and not 0 <= opening.wall_index < len(room.walls):
+                raise ValueError(f"{room.id} opening wall_index is outside wall bounds")
+            if opening.position_ratio is not None and not 0.0 <= opening.position_ratio <= 1.0:
+                raise ValueError(f"{room.id} opening position_ratio must be between 0 and 1")
     if not math.isfinite(plan.layout_drift_m) or plan.layout_drift_m < 0:
         raise ValueError("layout_drift_m must be finite and non-negative")
