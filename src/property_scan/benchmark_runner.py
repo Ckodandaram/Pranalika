@@ -58,7 +58,7 @@ class BenchmarkSuite:
             report = case.run()
             results[case.name] = {
                 "title": report.title,
-                "summary": report.summary,
+                "summary": report.summary_with_metrics(),
                 "metric_count": len(report.metrics),
             }
         return results

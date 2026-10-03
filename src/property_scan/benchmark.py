@@ -35,11 +35,22 @@ class BenchmarkReport:
     def add_metric(self, metric: MetricResult) -> None:
         self.metrics.append(metric)
 
+    def summary_with_metrics(self) -> Dict[str, Any]:
+        passed_count = sum(1 for metric in self.metrics if metric.passed)
+        metric_count = len(self.metrics)
+        return {
+            **self.summary,
+            "metric_count": metric_count,
+            "passed_count": passed_count,
+            "failed_count": metric_count - passed_count,
+            "pass_coverage": passed_count / metric_count if metric_count else 0.0,
+        }
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "title": self.title,
             "metrics": [m.to_dict() for m in self.metrics],
-            "summary": self.summary,
+            "summary": self.summary_with_metrics(),
         }
 
 
