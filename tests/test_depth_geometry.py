@@ -13,6 +13,7 @@ from property_scan.data_loader import (
     estimate_pose_registered_depth_geometry,
     estimate_real_room_geometry,
     estimate_floor_plane_geometry,
+    estimate_floor_aligned_footprint,
     estimate_ransac_floor_plane_geometry,
     estimate_translated_depth_geometry,
 )
@@ -63,6 +64,14 @@ class TestDepthGeometry(unittest.TestCase):
         self.assertGreater(geometry["floor_inlier_count"], 0)
         self.assertGreaterEqual(geometry["normal_y"], 0.85)
         self.assertGreater(geometry["floor_x_extent_m"], 0.0)
+
+    def test_floor_aligned_footprint_is_generated_from_real_capture(self):
+        root = ROOT / "data" / "single_scan_floor_only" / "1a8384c3f6"
+        footprint = estimate_floor_aligned_footprint(detect_capture_profile(root))
+        self.assertTrue(footprint["footprint_found"])
+        self.assertGreater(footprint["footprint_point_count"], 0)
+        self.assertGreater(footprint["footprint_area_m2"], 0.0)
+        self.assertGreaterEqual(len(footprint["polygon_xz_m"]), 3)
 
 
 if __name__ == "__main__":

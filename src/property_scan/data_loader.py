@@ -616,6 +616,127 @@ def estimate_ransac_floor_plane_geometry(
     }
 
 
+def estimate_floor_aligned_footprint(
+    profile: CaptureProfile,
+    sample_limit: int = 20,
+    floor_band_m: float = 0.04,
+) -> dict[str, float | int | bool | list[list[float]]]:
+    """Return a conservative x/z footprint from the fitted floor candidate.
+
+    The polygon is the convex hull of floor-band points in the horizontal
+    camera/world basis. It is a candidate footprint only: walls, furniture,
+    occlusion, and pose-convention errors can still affect its boundary.
+    """
+    floor = estimate_ransac_floor_plane_geometry(
+        profile,
+        sample_limit=sample_limit,
+        distance_threshold_m=floor_band_m,
+    )
+    if not floor["plane_found"]:
+        return {
+            "footprint_found": False,
+            "footprint_point_count": 0,
+            "footprint_area_m2": 0.0,
+            "polygon_xz_m": [],
+        }
+
+    depth_files = sorted((profile.root / "depth").glob("*.png"))[:sample_limit]
+    odometry = _read_odometry(profile.root / "odometry.csv")
+    if not depth_files or not odometry or not profile.camera_matrix:
+        return {
+            "footprint_found": False,
+            "footprint_point_count": 0,
+            "footprint_area_m2": 0.0,
+            "polygon_xz_m": [],
+        }
+
+    fx, fy = profile.camera_matrix[0][0], profile.camera_matrix[1][1]
+    cx, cy = profile.camera_matrix[0][2], profile.camera_matrix[1][2]
+    points: list[np.ndarray] = []
+    for path, pose in zip(depth_files, odometry):
+        depth_mm = np.asarray(Image.open(path), dtype=np.float32)
+        valid = depth_mm > 0
+        if not np.any(valid):
+            continue
+        rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
+        z_m = depth_mm[valid] * 0.001
+        x_m = (columns[valid] - cx) * z_m / fx
+        y_m = (rows[valid] - cy) * z_m / fy
+        quaternion = tuple(float(pose.get(name, 0.0)) for name in ("qx", "qy", "qz", "qw"))
+        if quaternion[3] == 0.0 and quaternion[:3] == (0.0, 0.0, 0.0):
+            quaternion = (0.0, 0.0, 0.0, 1.0)
+        rotated_x, rotated_y, rotated_z = _rotate_points_by_quaternion(x_m, y_m, z_m, quaternion)
+        points.append(
+            np.column_stack(
+                (
+                    rotated_x + float(pose["x"]),
+                    rotated_y + float(pose["y"]),
+                    rotated_z + float(pose["z"]),
+                )
+            )
+        )
+
+    if not points:
+        return {
+            "footprint_found": False,
+            "footprint_point_count": 0,
+            "footprint_area_m2": 0.0,
+            "polygon_xz_m": [],
+        }
+
+    cloud = np.concatenate(points)
+    floor_height = float(floor["floor_height_m"])
+    band = cloud[np.abs(cloud[:, 1] - floor_height) <= floor_band_m]
+    if band.shape[0] < 3:
+        return {
+            "footprint_found": False,
+            "footprint_point_count": int(band.shape[0]),
+            "footprint_area_m2": 0.0,
+            "polygon_xz_m": [],
+        }
+
+    points_xz = band[:, [0, 2]]
+    points_xz = points_xz[
+        np.linspace(0, points_xz.shape[0] - 1, min(5000, points_xz.shape[0]), dtype=int)
+    ]
+    ordered = points_xz[np.lexsort((points_xz[:, 1], points_xz[:, 0]))]
+
+    def cross(origin: np.ndarray, first: np.ndarray, second: np.ndarray) -> float:
+        first_delta = first - origin
+        second_delta = second - origin
+        return float(first_delta[0] * second_delta[1] - first_delta[1] * second_delta[0])
+
+    lower: list[np.ndarray] = []
+    for point in ordered:
+        while len(lower) >= 2 and cross(lower[-2], lower[-1], point) <= 0:
+            lower.pop()
+        lower.append(point)
+    upper: list[np.ndarray] = []
+    for point in reversed(ordered):
+        while len(upper) >= 2 and cross(upper[-2], upper[-1], point) <= 0:
+            upper.pop()
+        upper.append(point)
+    hull = lower[:-1] + upper[:-1]
+    if len(hull) < 3:
+        return {
+            "footprint_found": False,
+            "footprint_point_count": int(band.shape[0]),
+            "footprint_area_m2": 0.0,
+            "polygon_xz_m": [],
+        }
+
+    polygon = [[round(float(point[0]), 4), round(float(point[1]), 4)] for point in hull]
+    area = 0.0
+    for first, second in zip(hull, hull[1:] + hull[:1]):
+        area += float(first[0] * second[1] - second[0] * first[1])
+    return {
+        "footprint_found": True,
+        "footprint_point_count": int(band.shape[0]),
+        "footprint_area_m2": round(abs(area) * 0.5, 4),
+        "polygon_xz_m": polygon,
+    }
+
+
 def _safe_image_stats(depth_dir: Path) -> tuple[float, float, float]:
     files = sorted(depth_dir.glob("*.png"))
     if not files:
@@ -699,6 +820,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
     pose_registered_geometry = estimate_pose_registered_depth_geometry(profile)
     floor_geometry = estimate_floor_plane_geometry(profile)
     ransac_floor_geometry = estimate_ransac_floor_plane_geometry(profile)
+    footprint_geometry = estimate_floor_aligned_footprint(profile)
     return {
         "capture_name": profile.name,
         "scan_type": metrics.capture_type,
@@ -713,6 +835,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
         "pose_registered_depth_geometry": pose_registered_geometry,
         "floor_plane_geometry": floor_geometry,
         "ransac_floor_plane_geometry": ransac_floor_geometry,
+        "floor_aligned_footprint": footprint_geometry,
         "notes": metrics.notes,
     }
 

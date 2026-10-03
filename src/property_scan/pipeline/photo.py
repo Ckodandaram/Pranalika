@@ -9,6 +9,7 @@ from property_scan.data_loader import (
     estimate_projected_depth_geometry,
     estimate_pose_registered_depth_geometry,
     estimate_floor_plane_geometry,
+    estimate_floor_aligned_footprint,
     estimate_ransac_floor_plane_geometry,
     estimate_translated_depth_geometry,
     summarize_capture_profile,
@@ -127,6 +128,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         pose_registered_geometry = estimate_pose_registered_depth_geometry(session)
         floor_geometry = estimate_floor_plane_geometry(session)
         ransac_floor_geometry = estimate_ransac_floor_plane_geometry(session)
+        footprint_geometry = estimate_floor_aligned_footprint(session)
         area_m2 = round(metrics.estimated_floor_area_m2, 2)
         ceiling_height = round(metrics.estimated_ceiling_height_m, 2)
 
@@ -184,6 +186,8 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     {"item": "ransac_floor_z_extent", "surface": "room", "quantity": round(float(ransac_floor_geometry["floor_z_extent_m"]), 3), "unit": "m"},
                     {"item": "ransac_floor_inliers", "surface": "room", "quantity": float(ransac_floor_geometry["floor_inlier_count"]), "unit": "points"},
                     {"item": "ransac_floor_inlier_ratio", "surface": "room", "quantity": round(float(ransac_floor_geometry["floor_inlier_ratio"]), 3), "unit": "ratio"},
+                    {"item": "floor_footprint_area", "surface": "room", "quantity": float(footprint_geometry["footprint_area_m2"]), "unit": "m2"},
+                    {"item": "floor_footprint_points", "surface": "room", "quantity": float(footprint_geometry["footprint_point_count"]), "unit": "points"},
                 ],
                 adjacency=[],
             )
