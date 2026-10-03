@@ -7,7 +7,11 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from property_scan.stitching import estimate_layout_drift, stitch_room_graph
+from property_scan.stitching import (
+    estimate_layout_drift,
+    stitch_room_graph,
+    validate_room_graph,
+)
 
 
 class TestStitching(unittest.TestCase):
@@ -24,6 +28,24 @@ class TestStitching(unittest.TestCase):
         ]
         drift = estimate_layout_drift(["room_1", "room_2", "room_3"], graph)
         self.assertAlmostEqual(drift, 0.0135, places=4)
+
+    def test_high_drift_edges_are_rejected_from_property_connectivity(self):
+        graph = stitch_room_graph(
+            ["room_1", "room_2", "room_3"],
+            [
+                ("room_1", "room_2", "hallway"),
+                ("room_2", "room_3", "hallway"),
+            ],
+            edge_drifts_m={
+                ("room_1", "room_2"): 0.01,
+                ("room_2", "room_3"): 0.8,
+            },
+        )
+        validation = validate_room_graph(["room_1", "room_2", "room_3"], graph)
+        self.assertFalse(validation["passed"])
+        self.assertFalse(validation["connected"])
+        self.assertEqual(validation["components"], [["room_1", "room_2"], ["room_3"]])
+        self.assertEqual(len(validation["rejected_edges"]), 1)
 
 
 if __name__ == "__main__":

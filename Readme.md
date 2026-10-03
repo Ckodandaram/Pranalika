@@ -80,3 +80,8 @@ Each candidate is retained in the photo room's `scope_items` with its source
 plane and horizontal interval, rather than exposing only an aggregate count.
 The default candidate gate accepts widths from 0.45 m through 2.5 m; broader
 holes are treated as incomplete wall coverage rather than openings.
+
+Whole-property stitching now validates room-link drift before declaring the
+layout connected. Links above the 0.25 m default drift threshold are rejected,
+and the validator reports connected components and rejected edges instead of
+silently averaging disconnected rooms into one property layout.
