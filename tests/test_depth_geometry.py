@@ -12,6 +12,7 @@ from property_scan.data_loader import (
     estimate_projected_depth_geometry,
     estimate_pose_registered_depth_geometry,
     estimate_real_room_geometry,
+    estimate_floor_plane_geometry,
     estimate_translated_depth_geometry,
 )
 
@@ -46,6 +47,13 @@ class TestDepthGeometry(unittest.TestCase):
         self.assertGreater(geometry["x_extent_m"], 0.0)
         self.assertGreater(geometry["y_extent_m"], 0.0)
         self.assertGreater(geometry["z_extent_m"], 0.0)
+
+    def test_floor_candidate_is_extracted_from_registered_real_depth(self):
+        root = ROOT / "data" / "single_scan_floor_only" / "1a8384c3f6"
+        geometry = estimate_floor_plane_geometry(detect_capture_profile(root))
+        self.assertGreater(geometry["floor_inlier_count"], 0)
+        self.assertGreater(geometry["floor_x_extent_m"], 0.0)
+        self.assertGreater(geometry["floor_z_extent_m"], 0.0)
 
 
 if __name__ == "__main__":

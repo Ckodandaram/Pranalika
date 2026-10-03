@@ -398,6 +398,66 @@ def estimate_pose_registered_depth_geometry(profile: CaptureProfile, sample_limi
     }
 
 
+def estimate_floor_plane_geometry(profile: CaptureProfile, sample_limit: int = 20) -> dict[str, float | int]:
+    """Estimate a horizontal floor band and its x/z footprint.
+
+    The lowest robust y percentile is used as a candidate floor level. Points
+    within 8 cm of that level form the floor band. This is a diagnostic
+    hypothesis, not a fitted plane or independently measured floor truth.
+    """
+    depth_files = sorted((profile.root / "depth").glob("*.png"))[:sample_limit]
+    odometry = _read_odometry(profile.root / "odometry.csv")
+    if not depth_files or not odometry or not profile.camera_matrix:
+        return {"floor_height_m": 0.0, "floor_inlier_count": 0, "floor_x_extent_m": 0.0, "floor_z_extent_m": 0.0}
+
+    fx, fy = profile.camera_matrix[0][0], profile.camera_matrix[1][1]
+    cx, cy = profile.camera_matrix[0][2], profile.camera_matrix[1][2]
+    if fx <= 0 or fy <= 0:
+        return {"floor_height_m": 0.0, "floor_inlier_count": 0, "floor_x_extent_m": 0.0, "floor_z_extent_m": 0.0}
+
+    points: list[np.ndarray] = []
+    for path, pose in zip(depth_files, odometry):
+        depth_mm = np.asarray(Image.open(path), dtype=np.float32)
+        valid = depth_mm > 0
+        if not np.any(valid):
+            continue
+        rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
+        z_m = depth_mm[valid] * 0.001
+        x_m = (columns[valid] - cx) * z_m / fx
+        y_m = (rows[valid] - cy) * z_m / fy
+        quaternion = tuple(float(pose.get(name, 0.0)) for name in ("qx", "qy", "qz", "qw"))
+        if quaternion[3] == 0.0 and quaternion[:3] == (0.0, 0.0, 0.0):
+            quaternion = (0.0, 0.0, 0.0, 1.0)
+        rotated_x, rotated_y, rotated_z = _rotate_points_by_quaternion(x_m, y_m, z_m, quaternion)
+        points.append(
+            np.column_stack(
+                (
+                    rotated_x + float(pose["x"]),
+                    rotated_y + float(pose["y"]),
+                    rotated_z + float(pose["z"]),
+                )
+            )
+        )
+
+    if not points:
+        return {"floor_height_m": 0.0, "floor_inlier_count": 0, "floor_x_extent_m": 0.0, "floor_z_extent_m": 0.0}
+
+    cloud = np.concatenate(points)
+    floor_height = float(np.percentile(cloud[:, 1], 5.0))
+    floor_band = cloud[np.abs(cloud[:, 1] - floor_height) <= 0.08]
+    if floor_band.size == 0:
+        return {"floor_height_m": floor_height, "floor_inlier_count": 0, "floor_x_extent_m": 0.0, "floor_z_extent_m": 0.0}
+
+    x_low, x_high = np.percentile(floor_band[:, 0], [2.0, 98.0])
+    z_low, z_high = np.percentile(floor_band[:, 2], [2.0, 98.0])
+    return {
+        "floor_height_m": floor_height,
+        "floor_inlier_count": int(floor_band.shape[0]),
+        "floor_x_extent_m": float(max(0.0, x_high - x_low)),
+        "floor_z_extent_m": float(max(0.0, z_high - z_low)),
+    }
+
+
 def _safe_image_stats(depth_dir: Path) -> tuple[float, float, float]:
     files = sorted(depth_dir.glob("*.png"))
     if not files:
@@ -479,6 +539,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
     projected_geometry = estimate_projected_depth_geometry(profile)
     translated_geometry = estimate_translated_depth_geometry(profile)
     pose_registered_geometry = estimate_pose_registered_depth_geometry(profile)
+    floor_geometry = estimate_floor_plane_geometry(profile)
     return {
         "capture_name": profile.name,
         "scan_type": metrics.capture_type,
@@ -491,6 +552,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
         **projected_geometry,
         "translated_depth_geometry": translated_geometry,
         "pose_registered_depth_geometry": pose_registered_geometry,
+        "floor_plane_geometry": floor_geometry,
         "notes": metrics.notes,
     }
 
