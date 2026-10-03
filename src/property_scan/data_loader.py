@@ -20,16 +20,21 @@ class CaptureProfile:
     has_ceiling: bool
     camera_matrix: list[list[float]] | None = None
 
-    @property
-    def scan_type(self) -> str:
-        lower = self.name.lower()
-        if "floor_only" in lower:
+    @staticmethod
+    def _infer_scan_type_from_path(path: Path) -> str:
+        candidates = [path.name, path.parent.name, path.parent.parent.name]
+        joined = " ".join(part.lower() for part in candidates if part)
+        if "floor_only" in joined:
             return "floor_only"
-        if "with_ceiling" in lower or "ceiling" in lower:
+        if "with_ceiling" in joined or "ceiling" in joined:
             return "with_ceiling"
-        if "single_room" in lower:
+        if "single_room" in joined:
             return "single_room"
         return "unknown"
+
+    @property
+    def scan_type(self) -> str:
+        return self._infer_scan_type_from_path(self.root)
 
 
 def _safe_float(value: str) -> float:

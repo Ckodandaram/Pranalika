@@ -102,11 +102,15 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
 
     rooms: list[Room] = []
     for index, session in enumerate(sessions, start=1):
-        room_type = "single_room" if "single_room" in session.name.lower() else "hall"
-        if "floor_only" in session.name.lower():
+        scan_type = session.scan_type
+        if scan_type == "floor_only":
             room_type = "bathroom"
-        elif "with_ceiling" in session.name.lower() or session.has_ceiling:
+        elif scan_type == "with_ceiling":
             room_type = "living room"
+        elif scan_type == "single_room":
+            room_type = "single_room"
+        else:
+            room_type = "hall"
 
         baseline = _ROOM_TYPE_BASELINES[_room_type_from_name(room_type)]
         area_m2 = round(max(8.0, 8.0 + session.frame_count / 350.0 + session.total_motion_m * 25.0), 2)
