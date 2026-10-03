@@ -60,6 +60,20 @@ class TestRealSampleMetrics(unittest.TestCase):
             self.assertGreaterEqual(item["confidence"], 0.0)
             self.assertLessEqual(item["confidence"], 1.0)
 
+    def test_photo_output_exposes_metric_room_boundary_candidate(self):
+        plan = build_photo_plan(ROOT / "data", property_id="real")
+        boundary_items = [
+            item
+            for room in plan.rooms
+            for item in room.scope_items
+            if item["item"] == "room_boundary_candidate"
+        ]
+        self.assertEqual(len(boundary_items), len(plan.rooms))
+        for item in boundary_items:
+            self.assertGreater(item["quantity"], 0.0)
+            self.assertGreaterEqual(len(item["polygon"]), 3)
+            self.assertFalse(item["validated"])
+
 
 if __name__ == "__main__":
     unittest.main()

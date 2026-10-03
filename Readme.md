@@ -109,3 +109,8 @@ The CLI writes this assignment benchmark directly when `--benchmark-output` is
 provided for a photo data root without `--ground-truth`. When
 `--ground-truth` is provided, the same option continues to write the
 independent measurement comparison report instead.
+
+Photo rooms also expose a `room_boundary_candidate` scope item containing the
+floor-aligned registered-depth polygon, metric area, horizontal basis vectors,
+and a `validated` flag. The polygon is retained as reconstruction evidence
+until wall topology and independent measurements confirm it.
