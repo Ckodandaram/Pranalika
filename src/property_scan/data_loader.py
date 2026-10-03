@@ -535,6 +535,8 @@ def estimate_ransac_floor_plane_geometry(
             "floor_x_extent_m": 0.0,
             "floor_z_extent_m": 0.0,
             "normal_y": 0.0,
+            "normal_x": 0.0,
+            "normal_z": 0.0,
         }
 
     fx, fy = profile.camera_matrix[0][0], profile.camera_matrix[1][1]
@@ -548,6 +550,8 @@ def estimate_ransac_floor_plane_geometry(
             "floor_x_extent_m": 0.0,
             "floor_z_extent_m": 0.0,
             "normal_y": 0.0,
+            "normal_x": 0.0,
+            "normal_z": 0.0,
         }
 
     point_batches: list[np.ndarray] = []
@@ -585,6 +589,8 @@ def estimate_ransac_floor_plane_geometry(
             "floor_x_extent_m": 0.0,
             "floor_z_extent_m": 0.0,
             "normal_y": 0.0,
+            "normal_x": 0.0,
+            "normal_z": 0.0,
         }
 
     cloud = np.concatenate(point_batches)
@@ -656,6 +662,8 @@ def estimate_ransac_floor_plane_geometry(
             "floor_x_extent_m": 0.0,
             "floor_z_extent_m": 0.0,
             "normal_y": float(normal[1]),
+            "normal_x": float(normal[0]),
+            "normal_z": float(normal[2]),
         }
 
     x_low, x_high = np.percentile(full_inliers[:, 0], [2.0, 98.0])
@@ -671,6 +679,8 @@ def estimate_ransac_floor_plane_geometry(
         "floor_x_extent_m": float(max(0.0, x_high - x_low)),
         "floor_z_extent_m": float(max(0.0, z_high - z_low)),
         "normal_y": float(normal[1]),
+        "normal_x": float(normal[0]),
+        "normal_z": float(normal[2]),
     }
 
 
@@ -752,7 +762,20 @@ def estimate_floor_aligned_footprint(
             "polygon_xz_m": [],
         }
 
-    points_xz = band[:, [0, 2]]
+    normal = np.array(
+        [float(0.0), float(floor["normal_y"]), float(0.0)],
+        dtype=np.float32,
+    )
+    normal[0] = float(floor.get("normal_x", 0.0))
+    normal[2] = float(floor.get("normal_z", 0.0))
+    normal /= max(float(np.linalg.norm(normal)), 1e-8)
+    reference = np.array([1.0, 0.0, 0.0], dtype=np.float32)
+    if abs(float(np.dot(reference, normal))) > 0.9:
+        reference = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+    horizontal_u = np.cross(normal, reference)
+    horizontal_u /= max(float(np.linalg.norm(horizontal_u)), 1e-8)
+    horizontal_v = np.cross(normal, horizontal_u)
+    points_xz = np.column_stack((band @ horizontal_u, band @ horizontal_v))
     points_xz = points_xz[
         np.linspace(0, points_xz.shape[0] - 1, min(5000, points_xz.shape[0]), dtype=int)
     ]
@@ -791,6 +814,8 @@ def estimate_floor_aligned_footprint(
         "footprint_point_count": int(band.shape[0]),
         "footprint_area_m2": round(abs(area) * 0.5, 4),
         "polygon_xz_m": polygon,
+        "horizontal_axis_u": [round(float(value), 4) for value in horizontal_u],
+        "horizontal_axis_v": [round(float(value), 4) for value in horizontal_v],
     }
 
 

@@ -66,6 +66,8 @@ class TestDepthGeometry(unittest.TestCase):
         self.assertTrue(geometry["plane_found"])
         self.assertGreater(geometry["floor_inlier_count"], 0)
         self.assertGreaterEqual(geometry["normal_y"], 0.85)
+        self.assertIn("normal_x", geometry)
+        self.assertIn("normal_z", geometry)
         self.assertGreater(geometry["floor_x_extent_m"], 0.0)
 
     def test_floor_aligned_footprint_is_generated_from_real_capture(self):
@@ -75,6 +77,8 @@ class TestDepthGeometry(unittest.TestCase):
         self.assertGreater(footprint["footprint_point_count"], 0)
         self.assertGreater(footprint["footprint_area_m2"], 0.0)
         self.assertGreaterEqual(len(footprint["polygon_xz_m"]), 3)
+        self.assertEqual(len(footprint["horizontal_axis_u"]), 3)
+        self.assertEqual(len(footprint["horizontal_axis_v"]), 3)
 
 
 if __name__ == "__main__":
