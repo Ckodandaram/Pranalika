@@ -64,3 +64,8 @@ snapped metric wall segments into bounded room faces using planar graph
 tracing and shoelace area. It is designed to become the topology layer for
 shared walls and wall-hosted openings; it does not copy implementation code
 from the reference repositories.
+
+Qualified wall planes also expose robust horizontal and vertical extents.
+These extents are the metric evidence needed for the next opening stage;
+they are not yet treated as door/window ground truth without independent
+opening validation.

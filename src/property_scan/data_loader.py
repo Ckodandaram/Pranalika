@@ -1060,6 +1060,8 @@ def estimate_vertical_wall_planes(
                 np.percentile(points @ wall_direction, 98)
                 - np.percentile(points @ wall_direction, 2)
             )
+            wall_coordinates = points @ wall_direction
+            vertical_coordinates = points @ normal
             planes.append({
                 "normal": [round(float(value), 5) for value in plane_normal],
                 "offset": round(offset, 5),
@@ -1067,6 +1069,10 @@ def estimate_vertical_wall_planes(
                 "vertical_span_m": round(span, 4),
                 "mean_residual_m": round(residual, 5),
                 "horizontal_span_m": round(max(0.0, horizontal_span), 4),
+                "horizontal_min_m": round(float(np.percentile(wall_coordinates, 2)), 4),
+                "horizontal_max_m": round(float(np.percentile(wall_coordinates, 98)), 4),
+                "vertical_min_m": round(float(np.percentile(vertical_coordinates, 2)), 4),
+                "vertical_max_m": round(float(np.percentile(vertical_coordinates, 98)), 4),
             })
         remaining = remaining[~inliers]
         sample_indices = np.linspace(0, remaining.shape[0] - 1, min(6000, remaining.shape[0]), dtype=int) if remaining.size else np.array([], dtype=int)
