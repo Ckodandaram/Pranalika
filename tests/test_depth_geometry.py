@@ -14,6 +14,7 @@ from property_scan.data_loader import (
     estimate_real_room_geometry,
     estimate_floor_plane_geometry,
     estimate_floor_aligned_footprint,
+    estimate_wall_surface_geometry,
     estimate_ransac_floor_plane_geometry,
     estimate_translated_depth_geometry,
 )
@@ -79,6 +80,13 @@ class TestDepthGeometry(unittest.TestCase):
         self.assertGreaterEqual(len(footprint["polygon_xz_m"]), 3)
         self.assertEqual(len(footprint["horizontal_axis_u"]), 3)
         self.assertEqual(len(footprint["horizontal_axis_v"]), 3)
+
+    def test_wall_surface_geometry_is_extracted_from_real_capture(self):
+        root = ROOT / "data" / "single_scan_with_ceiling" / "c7d28f72c6"
+        geometry = estimate_wall_surface_geometry(detect_capture_profile(root))
+        self.assertTrue(geometry["wall_surface_found"])
+        self.assertGreater(geometry["wall_point_count"], 0)
+        self.assertGreater(geometry["wall_vertical_extent_m"], 0.0)
 
 
 if __name__ == "__main__":

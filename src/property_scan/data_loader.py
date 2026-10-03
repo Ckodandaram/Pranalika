@@ -664,6 +664,7 @@ def estimate_ransac_floor_plane_geometry(
             "normal_y": float(normal[1]),
             "normal_x": float(normal[0]),
             "normal_z": float(normal[2]),
+            "plane_offset": float(offset),
         }
 
     x_low, x_high = np.percentile(full_inliers[:, 0], [2.0, 98.0])
@@ -681,6 +682,7 @@ def estimate_ransac_floor_plane_geometry(
         "normal_y": float(normal[1]),
         "normal_x": float(normal[0]),
         "normal_z": float(normal[2]),
+        "plane_offset": float(offset),
     }
 
 
@@ -819,6 +821,117 @@ def estimate_floor_aligned_footprint(
     }
 
 
+def estimate_wall_surface_geometry(
+    profile: CaptureProfile,
+    sample_limit: int = 20,
+    floor_clearance_m: float = 0.15,
+    max_wall_height_m: float = 3.5,
+) -> dict[str, float | int | bool]:
+    """Estimate vertical wall-surface coverage above the fitted floor.
+
+    This stage reports observed surface extents, not wall-plane intersections.
+    It is intentionally conservative because furniture, openings, and
+    incomplete scan coverage can contaminate the registered cloud.
+    """
+    floor = estimate_ransac_floor_plane_geometry(profile, sample_limit=sample_limit)
+    depth_pose_pairs, skipped_frames = _depth_odometry_pairs(profile, sample_limit)
+    if not floor["plane_found"] or not depth_pose_pairs or not profile.camera_matrix:
+        return {
+            "wall_surface_found": False,
+            "wall_point_count": 0,
+            "matched_frame_count": len(depth_pose_pairs),
+            "skipped_frame_count": skipped_frames,
+            "wall_vertical_extent_m": 0.0,
+            "wall_horizontal_u_extent_m": 0.0,
+            "wall_horizontal_v_extent_m": 0.0,
+        }
+
+    fx, fy = profile.camera_matrix[0][0], profile.camera_matrix[1][1]
+    cx, cy = profile.camera_matrix[0][2], profile.camera_matrix[1][2]
+    normal = np.array(
+        [float(floor["normal_x"]), float(floor["normal_y"]), float(floor["normal_z"])],
+        dtype=np.float32,
+    )
+    normal /= max(float(np.linalg.norm(normal)), 1e-8)
+    reference = np.array([1.0, 0.0, 0.0], dtype=np.float32)
+    if abs(float(np.dot(reference, normal))) > 0.9:
+        reference = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+    horizontal_u = np.cross(normal, reference)
+    horizontal_u /= max(float(np.linalg.norm(horizontal_u)), 1e-8)
+    horizontal_v = np.cross(normal, horizontal_u)
+    floor_point = np.array([0.0, float(floor["floor_height_m"]), 0.0], dtype=np.float32)
+
+    wall_batches: list[np.ndarray] = []
+    for path, pose in depth_pose_pairs:
+        depth_mm = np.asarray(Image.open(path), dtype=np.float32)
+        valid, _ = _confidence_filtered_mask(profile, path, depth_mm)
+        if not np.any(valid):
+            continue
+        rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
+        z_m = depth_mm[valid] * 0.001
+        x_m = (columns[valid] - cx) * z_m / fx
+        y_m = (rows[valid] - cy) * z_m / fy
+        quaternion = tuple(float(pose.get(name, 0.0)) for name in ("qx", "qy", "qz", "qw"))
+        if quaternion[3] == 0.0 and quaternion[:3] == (0.0, 0.0, 0.0):
+            quaternion = (0.0, 0.0, 0.0, 1.0)
+        rotated_x, rotated_y, rotated_z = _rotate_points_by_quaternion(x_m, y_m, z_m, quaternion)
+        wall_batches.append(
+            np.column_stack(
+                (
+                    rotated_x + float(pose["x"]),
+                    rotated_y + float(pose["y"]),
+                    rotated_z + float(pose["z"]),
+                )
+            )
+        )
+
+    if not wall_batches:
+        return {
+            "wall_surface_found": False,
+            "wall_point_count": 0,
+            "matched_frame_count": len(depth_pose_pairs),
+            "skipped_frame_count": skipped_frames,
+            "wall_vertical_extent_m": 0.0,
+            "wall_horizontal_u_extent_m": 0.0,
+            "wall_horizontal_v_extent_m": 0.0,
+        }
+
+    cloud = np.concatenate(wall_batches)
+    relative = cloud - floor_point
+    height = cloud @ normal + float(floor.get("plane_offset", 0.0))
+    wall_mask = (height >= floor_clearance_m) & (height <= max_wall_height_m)
+    wall_points = cloud[wall_mask]
+    if wall_points.shape[0] < 3:
+        return {
+            "wall_surface_found": False,
+            "wall_point_count": int(wall_points.shape[0]),
+            "matched_frame_count": len(depth_pose_pairs),
+            "skipped_frame_count": skipped_frames,
+            "wall_vertical_extent_m": 0.0,
+            "wall_horizontal_u_extent_m": 0.0,
+            "wall_horizontal_v_extent_m": 0.0,
+        }
+
+    wall_relative = wall_points - floor_point
+    horizontal_u_values = wall_relative @ horizontal_u
+    horizontal_v_values = wall_relative @ horizontal_v
+    height_values = wall_relative @ normal
+
+    def robust_extent(values: np.ndarray) -> float:
+        low, high = np.percentile(values, [2.0, 98.0])
+        return float(max(0.0, high - low))
+
+    return {
+        "wall_surface_found": True,
+        "wall_point_count": int(wall_points.shape[0]),
+        "matched_frame_count": len(depth_pose_pairs),
+        "skipped_frame_count": skipped_frames,
+        "wall_vertical_extent_m": robust_extent(height_values),
+        "wall_horizontal_u_extent_m": robust_extent(horizontal_u_values),
+        "wall_horizontal_v_extent_m": robust_extent(horizontal_v_values),
+    }
+
+
 def _safe_image_stats(depth_dir: Path) -> tuple[float, float, float]:
     files = sorted(depth_dir.glob("*.png"))
     if not files:
@@ -909,6 +1022,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
     floor_geometry = estimate_floor_plane_geometry(profile)
     ransac_floor_geometry = estimate_ransac_floor_plane_geometry(profile)
     footprint_geometry = estimate_floor_aligned_footprint(profile)
+    wall_geometry = estimate_wall_surface_geometry(profile)
     return {
         "capture_name": profile.name,
         "scan_type": metrics.capture_type,
@@ -925,6 +1039,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
         "floor_plane_geometry": floor_geometry,
         "ransac_floor_plane_geometry": ransac_floor_geometry,
         "floor_aligned_footprint": footprint_geometry,
+        "wall_surface_geometry": wall_geometry,
         "notes": metrics.notes,
     }
 
