@@ -66,6 +66,10 @@ class TestGroundTruth(unittest.TestCase):
         self.assertEqual(report["room_summary"]["passed_count"], 1)
         self.assertIn("quality_gates", report)
         self.assertFalse(report["quality_gates"]["stitching"])
+        self.assertEqual(report["assignment_readiness"]["blockers"], [
+            "stitching quality gate failed",
+            "room geometry quality gate failed",
+        ])
         validate_ground_truth_benchmark_report(report)
 
     def test_ground_truth_validator_rejects_missing_room_results(self):

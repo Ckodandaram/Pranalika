@@ -155,12 +155,22 @@ def validate_ground_truth_benchmark_report(report: dict[str, Any]) -> None:
     summary = report.get("metric_summary")
     if not isinstance(summary, dict) or summary.get("metric_count", 0) <= 0:
         raise ValueError("ground-truth benchmark requires metric summary")
+    expected_metric_count = sum(
+        len(item.get("metrics", []))
+        for item in report["reports"].values()
+        if isinstance(item, dict)
+    )
+    if summary.get("metric_count") != expected_metric_count:
+        raise ValueError("ground-truth metric summary does not match metric reports")
     readiness = report.get("assignment_readiness")
     if not isinstance(readiness, dict) or "blockers" not in readiness or "next_action" not in readiness:
         raise ValueError("ground-truth benchmark requires assignment readiness details")
     gates = report.get("quality_gates")
     if not isinstance(gates, dict):
         raise ValueError("ground-truth benchmark requires quality gate status")
+    for key in ("measurement_tolerances", "stitching", "room_geometry", "independent_ground_truth"):
+        if key not in gates:
+            raise ValueError(f"ground-truth quality gates are missing {key}")
 
 
 def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManifest) -> dict[str, Any]:
@@ -254,6 +264,9 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
         "room_geometry": bool(plan.quality_gates.get("room_geometry", False)),
         "independent_ground_truth": True,
     }
+    ready = all(quality_gates.values())
+    if ready:
+        blockers = []
     return {
         "schema_version": "1.1.0",
         "ground_truth_source": manifest.source,
@@ -279,7 +292,7 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
         "quality_gates": quality_gates,
         "validated_against_independent_ground_truth": True,
         "assignment_readiness": {
-            "ready": False,
+            "ready": ready,
             "measurement_tolerances_passed": passed,
             "required_tolerances": {
                 "opening_width_cm": 2.0,
@@ -288,6 +301,9 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
             },
             "blockers": blockers,
             "next_action": (
+                "assignment measurement claim is supported by all configured gates"
+                if ready
+                else
                 "resolve the listed blockers and rerun the independent benchmark"
                 if blockers
                 else "eligible for assignment measurement claim review"

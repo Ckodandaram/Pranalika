@@ -89,6 +89,12 @@ def validate_assignment_benchmark_report(report: dict[str, Any]) -> None:
         case = report[case_name]
         if not isinstance(case.get("metrics"), list):
             raise ValueError(f"benchmark case {case_name} requires metric details")
+    metric_summary = report.get("metric_summary")
+    if not isinstance(metric_summary, dict) or metric_summary.get("metric_count", 0) <= 0:
+        raise ValueError("assignment benchmark requires metric summary")
+    quality_gates = report.get("quality_gates")
+    if not isinstance(quality_gates, dict):
+        raise ValueError("assignment benchmark requires quality gate status")
 
 
 def benchmark_metric_summary(report: dict[str, Any]) -> dict[str, int | float]:
@@ -336,5 +342,11 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
     }
     results["report_schema_version"] = {"value": "1.2.0"}
     results["metric_summary"] = benchmark_metric_summary(results)
+    results["quality_gates"] = {
+        "confidence": bool(reconstruction_summary["all_confidence_gates_passed"]),
+        "trajectory": bool(reconstruction_summary["all_trajectories_consistent"]),
+        "room_geometry": bool(geometry_summary["validated_for_measurement_claims"]),
+        "independent_ground_truth": False,
+    }
     validate_assignment_benchmark_report(results)
     return results

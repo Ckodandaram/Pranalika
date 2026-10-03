@@ -65,6 +65,25 @@ class TestBenchmarkArtifactContract(unittest.TestCase):
             },
         )
 
+    def test_rejects_report_without_quality_gates(self):
+        report = {
+            "opening_width": {"metrics": [{}]},
+            "ceiling_height": {"metrics": []},
+            "wall_length": {"metrics": []},
+            "repeatability": {"metrics": []},
+            "report_schema_version": {"value": "1.2.0"},
+            "report_provenance": {"independent_ground_truth": False},
+            "assignment_readiness": {
+                "ready": False,
+                "validated_against_independent_ground_truth": False,
+                "blockers": [],
+                "next_action": "none",
+            },
+            "metric_summary": {"metric_count": 1},
+        }
+        with self.assertRaisesRegex(ValueError, "quality gate status"):
+            validate_assignment_benchmark_report(report)
+
 
 if __name__ == "__main__":
     unittest.main()
