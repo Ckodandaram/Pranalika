@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import math
 from typing import Any, Dict, List, Optional
 
 
@@ -102,7 +103,7 @@ class PropertyPlan:
     capture_tier: str
     property_id: str
     rooms: List[Room]
-    whole_property_connections: List[Dict[str, str]] = field(default_factory=list)
+    whole_property_connections: List[Dict[str, Any]] = field(default_factory=list)
     schema_version: str = "1.0.0"
     generated_by: str = "property_scan"
     layout_drift_m: float = 0.0
@@ -134,3 +135,31 @@ def confidence_interval_for_tier(tier: str, nominal: float) -> ConfidenceInterva
 
     half_width = nominal * tier_bandwidth
     return ConfidenceInterval(low=nominal - half_width, high=nominal + half_width, unit="m")
+
+
+def validate_plan_contract(plan: PropertyPlan) -> None:
+    """Reject malformed plans before they are persisted or benchmarked."""
+    if not plan.property_id.strip():
+        raise ValueError("property_id must be non-empty")
+    room_ids: set[str] = set()
+    for room in plan.rooms:
+        if not room.id.strip():
+            raise ValueError("room id must be non-empty")
+        if room.id in room_ids:
+            raise ValueError(f"duplicate room id: {room.id}")
+        room_ids.add(room.id)
+        measurements = [room.floor_area, room.ceiling_height, *room.walls]
+        for measurement in measurements:
+            if not math.isfinite(measurement.value) or measurement.value <= 0:
+                raise ValueError(f"{room.id} measurements must be finite and positive")
+        opening_ids: set[str] = set()
+        for opening in room.openings:
+            if opening.id in opening_ids:
+                raise ValueError(f"duplicate opening id in room {room.id}")
+            opening_ids.add(opening.id)
+            if not math.isfinite(opening.width.value) or opening.width.value <= 0:
+                raise ValueError(f"{room.id} opening width must be finite and positive")
+            if not math.isfinite(opening.height.value) or opening.height.value <= 0:
+                raise ValueError(f"{room.id} opening height must be finite and positive")
+    if not math.isfinite(plan.layout_drift_m) or plan.layout_drift_m < 0:
+        raise ValueError("layout_drift_m must be finite and non-negative")

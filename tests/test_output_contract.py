@@ -12,6 +12,7 @@ if str(SRC) not in sys.path:
 
 from property_scan.cli import main
 from property_scan.pipeline import build_lidar_plan, build_photo_plan, build_video_plan
+from property_scan.common.output_contract import Measurement, PropertyPlan, Room, validate_plan_contract
 
 
 class TestPropertyPlanContract(unittest.TestCase):
@@ -27,6 +28,16 @@ class TestPropertyPlanContract(unittest.TestCase):
             plan = build_photo_plan(tmpdir, property_id="demo")
             payload = plan.to_dict()
             self.assertIn("rooms", payload)
+
+    def test_plan_contract_rejects_duplicate_rooms(self):
+        room = Room("room_1", "Room", Measurement(10), Measurement(2.7))
+        with self.assertRaisesRegex(ValueError, "duplicate room id"):
+            validate_plan_contract(PropertyPlan("photo", "demo", [room, room]))
+
+    def test_plan_contract_rejects_invalid_measurements(self):
+        room = Room("room_1", "Room", Measurement(0), Measurement(2.7))
+        with self.assertRaisesRegex(ValueError, "finite and positive"):
+            validate_plan_contract(PropertyPlan("photo", "demo", [room]))
             self.assertIn("whole_property_connections", payload)
             self.assertIn("stitching_notes", payload)
             self.assertTrue(any("stitching connected=True" in note for note in payload["stitching_notes"]))

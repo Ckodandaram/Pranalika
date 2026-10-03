@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from property_scan.common.output_contract import Measurement, Opening, PropertyPlan, Room, confidence_interval_for_tier
+from property_scan.common.output_contract import Measurement, Opening, PropertyPlan, Room, confidence_interval_for_tier, validate_plan_contract
 from property_scan.data_loader import detect_capture_profile
 from property_scan.stitching import stitch_room_graph, validate_room_graph
 
@@ -80,7 +80,7 @@ def build_video_plan(video_path: str | Path, property_id: str = "property") -> P
         ),
     ]
 
-    return PropertyPlan(
+    plan = PropertyPlan(
         capture_tier="video",
         property_id=property_id,
         rooms=rooms,
@@ -99,3 +99,5 @@ def build_video_plan(video_path: str | Path, property_id: str = "property") -> P
         },
         measurement_claims_validated=False,
     )
+    validate_plan_contract(plan)
+    return plan

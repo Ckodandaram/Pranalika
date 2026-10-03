@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable
 
-from property_scan.common.output_contract import Measurement, Opening, PropertyPlan, Room, confidence_interval_for_tier
+from property_scan.common.output_contract import Measurement, Opening, PropertyPlan, Room, confidence_interval_for_tier, validate_plan_contract
 from property_scan.data_loader import (
     discover_capture_profiles,
     confidence_quality_gate,
@@ -47,6 +47,8 @@ def _property_stitching(rooms: list[Room]) -> tuple[list[dict[str, str]], float,
             "from": edge.from_room,
             "to": edge.to_room,
             "type": edge.connection_type,
+            "drift_m": edge.drift_m,
+            "verified": edge.verified,
         }
         for edge in room_graph
     ]
@@ -314,7 +316,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         for item in room.scope_items
         if item.get("item") == "room_geometry_quality_gate"
     )
-    return PropertyPlan(
+    plan = PropertyPlan(
         capture_tier="photo",
         property_id=property_id,
         rooms=rooms,
@@ -328,6 +330,8 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         },
         measurement_claims_validated=False,
     )
+    validate_plan_contract(plan)
+    return plan
 
 
 def build_photo_plan(property_root: str | Path, property_id: str = "property") -> PropertyPlan:
@@ -357,7 +361,7 @@ def build_photo_plan(property_root: str | Path, property_id: str = "property") -
         rooms.append(room)
 
     connections, drift_m, stitching_notes = _property_stitching(rooms)
-    return PropertyPlan(
+    plan = PropertyPlan(
         capture_tier="photo",
         property_id=property_id,
         rooms=rooms,
@@ -371,3 +375,5 @@ def build_photo_plan(property_root: str | Path, property_id: str = "property") -
         },
         measurement_claims_validated=False,
     )
+    validate_plan_contract(plan)
+    return plan

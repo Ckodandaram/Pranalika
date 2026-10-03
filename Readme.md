@@ -135,3 +135,8 @@ Every generated `PropertyPlan` now carries `quality_gates` and
 room geometry, and independent ground-truth requirements are all satisfied;
 diagnostic estimates remain available without being presented as validated
 assignment measurements.
+
+Before serialization, every pipeline now validates room IDs, opening IDs,
+positive finite measurements, and non-negative layout drift. Stitching
+connections also preserve their drift and verified status in the JSON output,
+so rejected links are visible to downstream consumers.

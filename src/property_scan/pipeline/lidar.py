@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from property_scan.common.output_contract import DamageRecord, Measurement, Opening, PropertyPlan, Room, confidence_interval_for_tier
+from property_scan.common.output_contract import DamageRecord, Measurement, Opening, PropertyPlan, Room, confidence_interval_for_tier, validate_plan_contract
 from property_scan.stitching import stitch_room_graph, validate_room_graph
 
 
@@ -76,7 +76,7 @@ def build_lidar_plan(lidar_root: str | Path, property_id: str = "property") -> P
         edge_drifts_m={("room_1", "room_2"): 0.01},
     )
     stitching = validate_room_graph(["room_1", "room_2"], room_graph)
-    return PropertyPlan(
+    plan = PropertyPlan(
         capture_tier="lidar",
         property_id=property_id,
         rooms=rooms,
@@ -94,3 +94,5 @@ def build_lidar_plan(lidar_root: str | Path, property_id: str = "property") -> P
         },
         measurement_claims_validated=False,
     )
+    validate_plan_contract(plan)
+    return plan

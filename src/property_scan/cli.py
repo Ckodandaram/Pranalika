@@ -7,6 +7,7 @@ from pathlib import Path
 from property_scan.ground_truth import compare_plan_to_ground_truth, load_ground_truth
 from property_scan.benchmark_runner import run_assignment_benchmark
 from property_scan.pipeline import build_lidar_plan, build_photo_plan, build_video_plan
+from property_scan.common.output_contract import validate_plan_contract
 
 
 def _parse_args() -> argparse.Namespace:
@@ -30,6 +31,7 @@ def main() -> int:
         plan = build_lidar_plan(args.input, args.property_id)
 
     output_path = Path(args.output)
+    validate_plan_contract(plan)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
     print(f"Wrote plan to {output_path}")
