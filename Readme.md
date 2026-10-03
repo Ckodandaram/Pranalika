@@ -90,6 +90,10 @@ Photo plans now include this stitching result in `stitching_notes` and
 `layout_drift_m`; the hallway chain remains an inferred connection until
 overlap or doorway evidence is available.
 
+Video and LiDAR plans expose the same connectivity and stitching quality
+status. This keeps the output contract consistent across capture tiers while
+retaining tier-specific drift estimates.
+
 Benchmark output also includes `reconstruction_quality`. Accuracy summaries
 are accompanied by confidence-coverage and trajectory-consistency gates, and
 `validated_for_accuracy_claims` is false whenever any capture fails either

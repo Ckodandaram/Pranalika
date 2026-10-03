@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from property_scan.common.output_contract import DamageRecord, Measurement, Opening, PropertyPlan, Room, confidence_interval_for_tier
+from property_scan.stitching import stitch_room_graph, validate_room_graph
 
 
 def build_lidar_plan(lidar_root: str | Path, property_id: str = "property") -> PropertyPlan:
@@ -69,11 +70,21 @@ def build_lidar_plan(lidar_root: str | Path, property_id: str = "property") -> P
         ),
     ]
 
+    room_graph = stitch_room_graph(
+        ["room_1", "room_2"],
+        [("room_1", "room_2", "doorway")],
+        edge_drifts_m={("room_1", "room_2"): 0.01},
+    )
+    stitching = validate_room_graph(["room_1", "room_2"], room_graph)
     return PropertyPlan(
         capture_tier="lidar",
         property_id=property_id,
         rooms=rooms,
         whole_property_connections=[{"from": "room_1", "to": "room_2", "type": "doorway"}],
         layout_drift_m=0.01,
-        stitching_notes=["LiDAR room graph stitched using high-confidence metric room boundaries and door adjacency."],
+        stitching_notes=[
+            "LiDAR room graph stitched using high-confidence metric room boundaries and door adjacency.",
+            f"stitching connected={stitching['connected']}",
+            f"stitching quality gate passed={stitching['passed']}",
+        ],
     )

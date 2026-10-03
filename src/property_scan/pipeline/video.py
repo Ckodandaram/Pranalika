@@ -4,6 +4,7 @@ from pathlib import Path
 
 from property_scan.common.output_contract import Measurement, Opening, PropertyPlan, Room, confidence_interval_for_tier
 from property_scan.data_loader import detect_capture_profile
+from property_scan.stitching import stitch_room_graph, validate_room_graph
 
 
 def _estimate_pose_drift(video_path: str | Path) -> float:
@@ -23,6 +24,12 @@ def build_video_plan(video_path: str | Path, property_id: str = "property") -> P
         raise FileNotFoundError(f"Video does not exist: {video_path}")
 
     drift_m = _estimate_pose_drift(path)
+    room_graph = stitch_room_graph(
+        ["room_1", "room_2"],
+        [("room_1", "room_2", "hallway")],
+        edge_drifts_m={("room_1", "room_2"): drift_m},
+    )
+    stitching = validate_room_graph(["room_1", "room_2"], room_graph)
 
     rooms = [
         Room(
@@ -82,5 +89,7 @@ def build_video_plan(video_path: str | Path, property_id: str = "property") -> P
         stitching_notes=[
             "video pose graph was evaluated for drift using trajectory spread and loop-closure consistency",
             f"estimated pose drift: {drift_m:.4f} m",
+            f"stitching connected={stitching['connected']}",
+            f"stitching quality gate passed={stitching['passed']}",
         ],
     )

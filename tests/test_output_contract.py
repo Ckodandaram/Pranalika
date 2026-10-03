@@ -41,6 +41,7 @@ class TestPropertyPlanContract(unittest.TestCase):
             room = plan.rooms[0]
             self.assertIn("floor_area", room.to_dict())
             self.assertGreater(len(room.openings), 0)
+            self.assertTrue(any("stitching connected=True" in note for note in plan.stitching_notes))
 
     def test_lidar_plan_has_damage_and_confidence(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -48,6 +49,7 @@ class TestPropertyPlanContract(unittest.TestCase):
             self.assertTrue(any(room.damage for room in plan.rooms))
             room = plan.rooms[0]
             self.assertIn("confidence", room.floor_area.to_dict())
+            self.assertTrue(any("stitching quality gate passed=True" in note for note in plan.stitching_notes))
 
     def test_cli_writes_json(self):
         with tempfile.TemporaryDirectory() as tmpdir:
