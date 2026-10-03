@@ -12,7 +12,7 @@ from property_scan.benchmark import (
     opening_width_rule,
     wall_length_rule,
 )
-from property_scan.common.output_contract import PropertyPlan
+from property_scan.common.output_contract import PropertyPlan, validate_plan_contract
 
 
 @dataclass(frozen=True)
@@ -135,6 +135,7 @@ def _report_dict(report: BenchmarkReport) -> dict[str, Any]:
 
 
 def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManifest) -> dict[str, Any]:
+    validate_plan_contract(plan)
     predicted_rooms = {room.id: room for room in plan.rooms}
     expected_rooms = {room.id: room for room in manifest.rooms}
     missing_rooms = sorted(set(expected_rooms) - set(predicted_rooms))

@@ -99,6 +99,7 @@ class TestPropertyPlanContract(unittest.TestCase):
             report = json.loads(benchmark_file.read_text(encoding="utf-8"))
             self.assertIn("reconstruction_quality", report)
             self.assertIn("opening_evidence", report)
+            self.assertIn("report_provenance", report)
         finally:
             output_file.unlink(missing_ok=True)
             benchmark_file.unlink(missing_ok=True)

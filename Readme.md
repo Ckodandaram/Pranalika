@@ -140,3 +140,10 @@ Before serialization, every pipeline now validates room IDs, opening IDs,
 positive finite measurements, and non-negative layout drift. Stitching
 connections also preserve their drift and verified status in the JSON output,
 so rejected links are visible to downstream consumers.
+
+When an independent ground-truth manifest is supplied, the CLI now validates
+the generated plan before comparison and updates the persisted plan with the
+ground-truth gate result. `measurement_claims_validated` becomes true only
+when the independent comparison, stitching, and room-geometry gates all pass.
+Proxy benchmark reports include explicit provenance showing that they are not
+independent ground truth.

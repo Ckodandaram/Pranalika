@@ -10,7 +10,12 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from property_scan.common.output_contract import Measurement, Opening, PropertyPlan, Room
-from property_scan.ground_truth import compare_plan_to_ground_truth, load_ground_truth
+from property_scan.ground_truth import (
+    GroundTruthManifest,
+    GroundTruthRoom,
+    compare_plan_to_ground_truth,
+    load_ground_truth,
+)
 
 
 class TestGroundTruth(unittest.TestCase):
@@ -64,6 +69,27 @@ class TestGroundTruth(unittest.TestCase):
             path.write_text(json.dumps(payload), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "Duplicate ground-truth room id"):
                 load_ground_truth(path)
+
+    def test_comparison_rejects_invalid_generated_measurement(self):
+        manifest = GroundTruthManifest(
+            source="survey",
+            rooms=[GroundTruthRoom("room_1", 2.7, [4.0])],
+        )
+        plan = PropertyPlan(
+            capture_tier="photo",
+            property_id="test",
+            rooms=[
+                Room(
+                    id="room_1",
+                    name="Room",
+                    floor_area=Measurement(0.0, "m2"),
+                    ceiling_height=Measurement(2.7),
+                    walls=[Measurement(4.0)],
+                )
+            ],
+        )
+        with self.assertRaisesRegex(ValueError, "finite and positive"):
+            compare_plan_to_ground_truth(plan, manifest)
 
 
 if __name__ == "__main__":

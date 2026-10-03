@@ -37,6 +37,13 @@ def main() -> int:
     print(f"Wrote plan to {output_path}")
     if args.ground_truth:
         report = compare_plan_to_ground_truth(plan, load_ground_truth(args.ground_truth))
+        plan.quality_gates["independent_ground_truth"] = bool(report["passed"])
+        plan.measurement_claims_validated = bool(
+            report["passed"]
+            and plan.quality_gates.get("stitching", False)
+            and plan.quality_gates.get("room_geometry", False)
+        )
+        output_path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
         benchmark_path = Path(args.benchmark_output) if args.benchmark_output else output_path.with_name(f"{output_path.stem}.benchmark.json")
         benchmark_path.parent.mkdir(parents=True, exist_ok=True)
         benchmark_path.write_text(json.dumps(report, indent=2), encoding="utf-8")

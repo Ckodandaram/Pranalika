@@ -259,4 +259,13 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
         },
         "metric_count": len(geometry_evidence),
     }
+    results["report_provenance"] = {
+        "independent_ground_truth": False,
+        "proxy_metrics": ["opening_width", "ceiling_height", "wall_length", "repeatability"],
+        "quality_gates": [
+            "confidence coverage",
+            "trajectory consistency",
+            "room geometry agreement",
+        ],
+    }
     return results
