@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from property_scan.ground_truth import compare_plan_to_ground_truth, load_ground_truth
+from property_scan.benchmark_runner import run_assignment_benchmark
 from property_scan.pipeline import build_lidar_plan, build_photo_plan, build_video_plan
 
 
@@ -32,14 +33,20 @@ def main() -> int:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
     print(f"Wrote plan to {output_path}")
-    if args.benchmark_output and not args.ground_truth:
-        raise ValueError("--benchmark-output requires --ground-truth")
     if args.ground_truth:
         report = compare_plan_to_ground_truth(plan, load_ground_truth(args.ground_truth))
         benchmark_path = Path(args.benchmark_output) if args.benchmark_output else output_path.with_name(f"{output_path.stem}.benchmark.json")
         benchmark_path.parent.mkdir(parents=True, exist_ok=True)
         benchmark_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
         print(f"Wrote ground-truth benchmark to {benchmark_path}")
+    elif args.benchmark_output:
+        if args.tier != "photo":
+            raise ValueError("--benchmark-output without --ground-truth is supported for the photo data root only")
+        report = run_assignment_benchmark(args.input)
+        benchmark_path = Path(args.benchmark_output)
+        benchmark_path.parent.mkdir(parents=True, exist_ok=True)
+        benchmark_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
+        print(f"Wrote assignment benchmark to {benchmark_path}")
     return 0
 
 

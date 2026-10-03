@@ -104,3 +104,8 @@ Opening benchmark output is split into `opening_width` and
 `opening_evidence`. The former is a proxy comparison until an independent
 ground-truth manifest is supplied; the latter contains the detected wall-gap
 candidate widths and source intervals for review.
+
+The CLI writes this assignment benchmark directly when `--benchmark-output` is
+provided for a photo data root without `--ground-truth`. When
+`--ground-truth` is provided, the same option continues to write the
+independent measurement comparison report instead.

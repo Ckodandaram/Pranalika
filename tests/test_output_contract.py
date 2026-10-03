@@ -66,6 +66,28 @@ class TestPropertyPlanContract(unittest.TestCase):
             payload = json.loads(output_file.read_text(encoding="utf-8"))
             self.assertIn("rooms", payload)
 
+    def test_cli_writes_assignment_benchmark_for_photo_data_root(self):
+        data_root = ROOT / "data"
+        output_file = Path(tempfile.gettempdir()) / "property_scan_plan.json"
+        benchmark_file = Path(tempfile.gettempdir()) / "property_scan_assignment_benchmark.json"
+        argv = [
+            "property_scan",
+            "--tier", "photo",
+            "--input", str(data_root),
+            "--output", str(output_file),
+            "--benchmark-output", str(benchmark_file),
+        ]
+        import sys as _sys
+        _sys.argv = argv
+        try:
+            self.assertEqual(main(), 0)
+            report = json.loads(benchmark_file.read_text(encoding="utf-8"))
+            self.assertIn("reconstruction_quality", report)
+            self.assertIn("opening_evidence", report)
+        finally:
+            output_file.unlink(missing_ok=True)
+            benchmark_file.unlink(missing_ok=True)
+
 
 if __name__ == "__main__":
     unittest.main()
