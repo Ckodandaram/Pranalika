@@ -157,6 +157,8 @@ def validate_plan_contract(plan: PropertyPlan) -> None:
         if room.id in room_ids:
             raise ValueError(f"duplicate room id: {room.id}")
         room_ids.add(room.id)
+        if len(room.adjacency) != len(set(room.adjacency)):
+            raise ValueError(f"duplicate adjacency entry in room {room.id}")
         measurements = [room.floor_area, room.ceiling_height, *room.walls]
         for measurement in measurements:
             if not math.isfinite(measurement.value) or measurement.value <= 0:
@@ -180,6 +182,7 @@ def validate_plan_contract(plan: PropertyPlan) -> None:
                 half_width_ratio = opening.width.value / max(wall_length, 1e-9) / 2.0
                 if position - half_width_ratio < 0.0 or position + half_width_ratio > 1.0:
                     raise ValueError(f"{room.id} opening interval exceeds host wall bounds")
+    connection_pairs: set[tuple[str, str]] = set()
     for connection in plan.whole_property_connections:
         source = connection.get("from")
         target = connection.get("to")
@@ -187,6 +190,10 @@ def validate_plan_contract(plan: PropertyPlan) -> None:
             raise ValueError("whole-property connection references an unknown room")
         if source == target:
             raise ValueError("whole-property connection cannot link a room to itself")
+        pair = tuple(sorted((source, target)))
+        if pair in connection_pairs:
+            raise ValueError("duplicate whole-property connection")
+        connection_pairs.add(pair)
         source_room = next(room for room in plan.rooms if room.id == source)
         target_room = next(room for room in plan.rooms if room.id == target)
         if target not in source_room.adjacency or source not in target_room.adjacency:

@@ -148,6 +148,13 @@ reference rooms present in the same plan.
 CLI plan JSON also includes `validation_summary` with room count, connection
 count, verified-connection count, and measurement-claim status.
 
+Assignment benchmark artifacts include a versioned `report_provenance` section
+and an `assignment_readiness` decision. Readiness is intentionally false until
+an independent ground-truth manifest is supplied and the confidence,
+trajectory, and room-geometry gates pass. The blockers and next action are
+serialized explicitly so a proxy benchmark cannot be mistaken for an accuracy
+claim.
+
 When an independent ground-truth manifest is supplied, the CLI now validates
 the generated plan before comparison and updates the persisted plan with the
 ground-truth gate result. `measurement_claims_validated` becomes true only

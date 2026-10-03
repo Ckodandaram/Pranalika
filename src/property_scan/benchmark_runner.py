@@ -260,6 +260,7 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
         "metric_count": len(geometry_evidence),
     }
     results["report_provenance"] = {
+        "schema_version": "1.1.0",
         "independent_ground_truth": False,
         "proxy_metrics": ["opening_width", "ceiling_height", "wall_length", "repeatability"],
         "quality_gates": [
@@ -267,5 +268,26 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
             "trajectory consistency",
             "room geometry agreement",
         ],
+    }
+    blockers = [
+        "independent ground-truth manifest is required for assignment accuracy claims",
+    ]
+    reconstruction_summary = results["reconstruction_quality"]["summary"]
+    geometry_summary = results["geometry_evidence"]["summary"]
+    if not reconstruction_summary["validated_for_accuracy_claims"]:
+        blockers.append("confidence coverage or trajectory consistency gate failed")
+    if not geometry_summary["validated_for_measurement_claims"]:
+        blockers.append("room geometry quality gate failed")
+    results["assignment_readiness"] = {
+        "schema_version": "1.0.0",
+        "ready": False,
+        "validated_against_independent_ground_truth": False,
+        "required_tolerances": {
+            "opening_width_cm": 2.0,
+            "opening_pass_fraction": 0.85,
+            "ceiling_height_cm": 1.5,
+        },
+        "blockers": blockers,
+        "next_action": "capture independent wall, opening, and ceiling measurements and rerun the benchmark",
     }
     return results

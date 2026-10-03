@@ -91,6 +91,21 @@ class TestPropertyPlanContract(unittest.TestCase):
         self.assertEqual(summary["connection_count"], 1)
         self.assertEqual(summary["verified_connection_count"], 0)
 
+    def test_plan_contract_rejects_duplicate_connections(self):
+        room_a = Room("room_1", "A", Measurement(10), Measurement(2.7), adjacency=["room_2"])
+        room_b = Room("room_2", "B", Measurement(10), Measurement(2.7), adjacency=["room_1"])
+        plan = PropertyPlan(
+            "photo",
+            "demo",
+            [room_a, room_b],
+            whole_property_connections=[
+                {"from": "room_1", "to": "room_2"},
+                {"from": "room_2", "to": "room_1"},
+            ],
+        )
+        with self.assertRaisesRegex(ValueError, "duplicate whole-property connection"):
+            validate_plan_contract(plan)
+
     def test_video_plan_has_measurements(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             video_path = Path(tmpdir) / "walkthrough.mp4"
@@ -150,6 +165,8 @@ class TestPropertyPlanContract(unittest.TestCase):
             self.assertIn("reconstruction_quality", report)
             self.assertIn("opening_evidence", report)
             self.assertIn("report_provenance", report)
+            self.assertIn("assignment_readiness", report)
+            self.assertFalse(report["assignment_readiness"]["ready"])
         finally:
             output_file.unlink(missing_ok=True)
             benchmark_file.unlink(missing_ok=True)
