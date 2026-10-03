@@ -135,9 +135,10 @@ def _depth_odometry_pairs(
             skipped += 1
             continue
         pairs.append((depth_path, pose))
-        if len(pairs) >= sample_limit:
-            break
-    return pairs, skipped
+    if len(pairs) <= sample_limit:
+        return pairs, skipped
+    sample_indices = np.linspace(0, len(pairs) - 1, sample_limit, dtype=int)
+    return [pairs[index] for index in sample_indices], skipped
 
 
 def _confidence_filtered_mask(profile: CaptureProfile, depth_path: Path, depth_mm: np.ndarray) -> tuple[np.ndarray, int]:
