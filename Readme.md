@@ -69,3 +69,9 @@ Qualified wall planes also expose robust horizontal and vertical extents.
 These extents are the metric evidence needed for the next opening stage;
 they are not yet treated as door/window ground truth without independent
 opening validation.
+
+The opening stage now reports internal gaps in wall-plane support as
+`wall-opening candidates`. These candidates include a metric interval,
+estimated width, and evidence confidence, but are deliberately not promoted
+to door/window measurements because occlusion and incomplete scan coverage
+can create identical gaps.

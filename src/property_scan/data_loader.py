@@ -1062,6 +1062,14 @@ def estimate_vertical_wall_planes(
             )
             wall_coordinates = points @ wall_direction
             vertical_coordinates = points @ normal
+            horizontal_min = float(np.percentile(wall_coordinates, 2))
+            horizontal_max = float(np.percentile(wall_coordinates, 98))
+            bin_count = max(1, int(np.ceil((horizontal_max - horizontal_min) / 0.1)))
+            occupancy, _ = np.histogram(
+                wall_coordinates,
+                bins=bin_count,
+                range=(horizontal_min, horizontal_min + bin_count * 0.1),
+            )
             planes.append({
                 "normal": [round(float(value), 5) for value in plane_normal],
                 "offset": round(offset, 5),
@@ -1069,10 +1077,11 @@ def estimate_vertical_wall_planes(
                 "vertical_span_m": round(span, 4),
                 "mean_residual_m": round(residual, 5),
                 "horizontal_span_m": round(max(0.0, horizontal_span), 4),
-                "horizontal_min_m": round(float(np.percentile(wall_coordinates, 2)), 4),
-                "horizontal_max_m": round(float(np.percentile(wall_coordinates, 98)), 4),
+                "horizontal_min_m": round(horizontal_min, 4),
+                "horizontal_max_m": round(horizontal_max, 4),
                 "vertical_min_m": round(float(np.percentile(vertical_coordinates, 2)), 4),
                 "vertical_max_m": round(float(np.percentile(vertical_coordinates, 98)), 4),
+                "occupied_bins": [int(index) for index, count in enumerate(occupancy) if count >= 2],
             })
         remaining = remaining[~inliers]
         sample_indices = np.linspace(0, remaining.shape[0] - 1, min(6000, remaining.shape[0]), dtype=int) if remaining.size else np.array([], dtype=int)
@@ -1087,6 +1096,44 @@ def estimate_vertical_wall_planes(
         "best_candidate_residual_m": round(best_candidate_residual, 5),
         "planes": planes,
     }
+
+
+def detect_wall_opening_candidates(
+    wall_planes: dict[str, object],
+    *,
+    bin_size_m: float = 0.1,
+    minimum_gap_m: float = 0.45,
+) -> list[dict[str, float | int | str]]:
+    """Find internal support gaps in qualified wall-plane occupancy.
+
+    Gaps are evidence candidates only: missing depth can also be caused by
+    occlusion, grazing angles, or incomplete scanning, so callers must not
+    label them as validated doors/windows without RGB or repeat-view checks.
+    """
+    candidates: list[dict[str, float | int | str]] = []
+    for plane_index, plane in enumerate(wall_planes.get("planes", [])):
+        occupied = sorted(set(int(value) for value in plane.get("occupied_bins", [])))
+        if len(occupied) < 2:
+            continue
+        first, last = occupied[0], occupied[-1]
+        occupied_set = set(occupied)
+        gap_start: int | None = None
+        for index in range(first, last + 2):
+            if index not in occupied_set and gap_start is None:
+                gap_start = index
+            elif index in occupied_set and gap_start is not None:
+                width = (index - gap_start) * bin_size_m
+                if width >= minimum_gap_m:
+                    candidates.append({
+                        "plane_index": plane_index,
+                        "start_m": round(float(plane["horizontal_min_m"]) + gap_start * bin_size_m, 4),
+                        "end_m": round(float(plane["horizontal_min_m"]) + index * bin_size_m, 4),
+                        "width_m": round(width, 4),
+                        "evidence": "wall-plane support gap",
+                        "confidence": round(min(0.75, len(occupied) / max(1, last - first + 1)), 3),
+                    })
+                gap_start = None
+    return candidates
 
 
 def _safe_image_stats(depth_dir: Path) -> tuple[float, float, float]:

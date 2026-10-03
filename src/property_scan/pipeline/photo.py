@@ -13,6 +13,7 @@ from property_scan.data_loader import (
     estimate_floor_aligned_footprint,
     estimate_wall_surface_geometry,
     estimate_vertical_wall_planes,
+    detect_wall_opening_candidates,
     estimate_ransac_floor_plane_geometry,
     estimate_translated_depth_geometry,
     summarize_capture_profile,
@@ -135,6 +136,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         footprint_geometry = estimate_floor_aligned_footprint(session)
         wall_geometry = estimate_wall_surface_geometry(session)
         wall_planes = estimate_vertical_wall_planes(session)
+        opening_candidates = detect_wall_opening_candidates(wall_planes)
         area_m2 = round(metrics.estimated_floor_area_m2, 2)
         ceiling_height = round(metrics.estimated_ceiling_height_m, 2)
 
@@ -211,6 +213,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     {"item": "wall_surface_u_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_horizontal_u_extent_m"]), 3), "unit": "m"},
                     {"item": "wall_surface_v_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_horizontal_v_extent_m"]), 3), "unit": "m"},
                     {"item": "vertical_wall_plane_count", "surface": "walls", "quantity": float(wall_planes["planes_found"]), "unit": "planes"},
+                    {"item": "wall_opening_candidate_count", "surface": "openings", "quantity": float(len(opening_candidates)), "unit": "candidates"},
                     {"item": "wall_length_source", "surface": "walls", "quantity": 1.0 if len(qualified_wall_lengths) >= 4 else 0.0, "unit": wall_length_source},
                 ],
                 adjacency=[],

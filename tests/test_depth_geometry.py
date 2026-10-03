@@ -19,6 +19,7 @@ from property_scan.data_loader import (
     estimate_trajectory_consistency,
     estimate_ransac_floor_plane_geometry,
     estimate_translated_depth_geometry,
+    detect_wall_opening_candidates,
 )
 
 
@@ -110,6 +111,18 @@ class TestDepthGeometry(unittest.TestCase):
         self.assertTrue(result["has_trajectory"])
         self.assertGreater(result["path_length_m"], 0.0)
         self.assertGreaterEqual(result["return_error_m"], 0.0)
+
+    def test_wall_support_gaps_are_reported_as_opening_candidates(self):
+        result = {
+            "planes": [{
+                "horizontal_min_m": 0.0,
+                "occupied_bins": [0, 1, 2, 8, 9, 10],
+            }]
+        }
+        candidates = detect_wall_opening_candidates(result, minimum_gap_m=0.4)
+        self.assertEqual(len(candidates), 1)
+        self.assertAlmostEqual(candidates[0]["width_m"], 0.5)
+        self.assertEqual(candidates[0]["evidence"], "wall-plane support gap")
 
 
 if __name__ == "__main__":
