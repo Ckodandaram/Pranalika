@@ -87,4 +87,10 @@ def build_lidar_plan(lidar_root: str | Path, property_id: str = "property") -> P
             f"stitching connected={stitching['connected']}",
             f"stitching quality gate passed={stitching['passed']}",
         ],
+        quality_gates={
+            "stitching": bool(stitching["passed"]),
+            "room_geometry": False,
+            "independent_ground_truth": False,
+        },
+        measurement_claims_validated=False,
     )

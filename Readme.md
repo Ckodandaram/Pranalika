@@ -129,3 +129,9 @@ The benchmark artifact also includes `geometry_evidence`, combining the same
 room-level gate with footprint area, wall-derived area, and disagreement ratio.
 The aggregate `validated_for_measurement_claims` flag remains false unless
 every evaluated capture passes.
+
+Every generated `PropertyPlan` now carries `quality_gates` and
+`measurement_claims_validated`. The latter remains false until stitching,
+room geometry, and independent ground-truth requirements are all satisfied;
+diagnostic estimates remain available without being presented as validated
+assignment measurements.

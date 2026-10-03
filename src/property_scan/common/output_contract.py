@@ -107,6 +107,8 @@ class PropertyPlan:
     generated_by: str = "property_scan"
     layout_drift_m: float = 0.0
     stitching_notes: List[str] = field(default_factory=list)
+    quality_gates: Dict[str, Any] = field(default_factory=dict)
+    measurement_claims_validated: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -116,6 +118,8 @@ class PropertyPlan:
             "generated_by": self.generated_by,
             "layout_drift_m": self.layout_drift_m,
             "stitching_notes": self.stitching_notes,
+            "quality_gates": self.quality_gates,
+            "measurement_claims_validated": self.measurement_claims_validated,
             "rooms": [room.to_dict() for room in self.rooms],
             "whole_property_connections": self.whole_property_connections,
         }

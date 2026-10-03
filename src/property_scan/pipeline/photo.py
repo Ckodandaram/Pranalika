@@ -308,6 +308,12 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         )
 
     connections, drift_m, stitching_notes = _property_stitching(rooms)
+    geometry_passed = all(
+        item.get("passed", False)
+        for room in rooms
+        for item in room.scope_items
+        if item.get("item") == "room_geometry_quality_gate"
+    )
     return PropertyPlan(
         capture_tier="photo",
         property_id=property_id,
@@ -315,6 +321,12 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         whole_property_connections=connections,
         layout_drift_m=drift_m,
         stitching_notes=stitching_notes,
+        quality_gates={
+            "stitching": any("stitching connected=True" in note for note in stitching_notes),
+            "room_geometry": geometry_passed,
+            "independent_ground_truth": False,
+        },
+        measurement_claims_validated=False,
     )
 
 
@@ -352,4 +364,10 @@ def build_photo_plan(property_root: str | Path, property_id: str = "property") -
         whole_property_connections=connections,
         layout_drift_m=drift_m,
         stitching_notes=stitching_notes,
+        quality_gates={
+            "stitching": True,
+            "room_geometry": False,
+            "independent_ground_truth": False,
+        },
+        measurement_claims_validated=False,
     )
