@@ -162,6 +162,12 @@ when the independent comparison, stitching, and room-geometry gates all pass.
 Proxy benchmark reports include explicit provenance showing that they are not
 independent ground truth.
 
+Independent benchmark reports are versioned and include the assignment
+tolerances plus an `assignment_readiness` section. A passing measurement
+comparison alone does not set the plan's validated claim flag: stitching and
+room-geometry gates must also pass. The report lists each remaining blocker
+and the next action explicitly.
+
 Every emitted opening now includes `source` and `validated` fields. Current
 photo, video, and LiDAR baseline openings are explicitly marked as estimates;
 wall-support gap candidates remain separate evidence until an opening detector

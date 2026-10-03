@@ -43,6 +43,15 @@ def main() -> int:
             and plan.quality_gates.get("stitching", False)
             and plan.quality_gates.get("room_geometry", False)
         )
+        readiness = report["assignment_readiness"]
+        readiness["ready"] = plan.measurement_claims_validated
+        if plan.measurement_claims_validated:
+            readiness["blockers"] = []
+            readiness["next_action"] = "assignment measurement claim is supported by the configured gates"
+        elif "stitching quality gate failed" not in readiness["blockers"] and not plan.quality_gates.get("stitching", False):
+            readiness["blockers"].append("stitching quality gate failed")
+        if "room geometry quality gate failed" not in readiness["blockers"] and not plan.quality_gates.get("room_geometry", False):
+            readiness["blockers"].append("room geometry quality gate failed")
         output_path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
         benchmark_path = Path(args.benchmark_output) if args.benchmark_output else output_path.with_name(f"{output_path.stem}.benchmark.json")
         benchmark_path.parent.mkdir(parents=True, exist_ok=True)

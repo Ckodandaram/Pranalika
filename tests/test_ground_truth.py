@@ -55,6 +55,9 @@ class TestGroundTruth(unittest.TestCase):
         self.assertTrue(report["passed"])
         self.assertEqual(report["rooms_evaluated"], 1)
         self.assertIn("opening_width", report["reports"])
+        self.assertTrue(report["validated_against_independent_ground_truth"])
+        self.assertIn("assignment_readiness", report)
+        self.assertFalse(report["assignment_readiness"]["ready"])
 
     def test_manifest_rejects_duplicate_room_ids(self):
         payload = {

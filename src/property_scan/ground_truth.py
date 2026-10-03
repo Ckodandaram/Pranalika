@@ -181,11 +181,36 @@ def compare_plan_to_ground_truth(plan: PropertyPlan, manifest: GroundTruthManife
     if opening_actual:
         reports["opening_width"] = _report_dict(opening_width_rule(opening_actual, opening_predicted))
 
+    passed = all(report["summary"]["passed"] for report in reports.values())
+    blockers = []
+    if not passed:
+        blockers.append("one or more assignment measurement tolerances failed")
+    if not plan.quality_gates.get("stitching", False):
+        blockers.append("stitching quality gate failed")
+    if not plan.quality_gates.get("room_geometry", False):
+        blockers.append("room geometry quality gate failed")
     return {
+        "schema_version": "1.1.0",
         "ground_truth_source": manifest.source,
         "ground_truth_schema_version": manifest.schema_version,
         "capture_tier": plan.capture_tier,
         "rooms_evaluated": len(expected_rooms),
         "reports": reports,
-        "passed": all(report["summary"]["passed"] for report in reports.values()),
+        "passed": passed,
+        "validated_against_independent_ground_truth": True,
+        "assignment_readiness": {
+            "ready": False,
+            "measurement_tolerances_passed": passed,
+            "required_tolerances": {
+                "opening_width_cm": 2.0,
+                "opening_pass_fraction": 0.85,
+                "ceiling_height_cm": 1.5,
+            },
+            "blockers": blockers,
+            "next_action": (
+                "resolve the listed blockers and rerun the independent benchmark"
+                if blockers
+                else "eligible for assignment measurement claim review"
+            ),
+        },
     }
