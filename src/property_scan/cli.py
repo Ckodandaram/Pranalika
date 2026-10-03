@@ -25,6 +25,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--ground-truth", help="Optional independently measured JSON manifest used to benchmark the generated plan")
     parser.add_argument("--benchmark-output", help="Optional JSON path for the ground-truth comparison report")
     parser.add_argument("--status-output", help="Optional JSON path for the reviewer-facing assignment status report")
+    parser.add_argument("--coverage-output", help="Optional JSON path for ground-truth coverage diagnostics")
     return parser.parse_args()
 
 
@@ -39,6 +40,18 @@ def main() -> int:
 
     output_path = Path(args.output)
     validate_plan_contract(plan)
+    manifest = None
+    coverage = None
+    if args.ground_truth:
+        manifest = load_ground_truth(args.ground_truth)
+        coverage = assess_ground_truth_coverage(plan, manifest)
+        if args.coverage_output:
+            coverage_path = Path(args.coverage_output)
+            coverage_path.parent.mkdir(parents=True, exist_ok=True)
+            coverage_path.write_text(json.dumps(coverage, indent=2), encoding="utf-8")
+            print(f"Wrote ground-truth coverage to {coverage_path}")
+        if not coverage["complete"]:
+            raise ValueError(f"Ground-truth manifest is incomplete: {coverage}")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(plan.to_dict(), indent=2), encoding="utf-8")
     print(f"Wrote plan to {output_path}")
@@ -47,10 +60,6 @@ def main() -> int:
     status_path.write_text(json.dumps(build_assignment_status(plan), indent=2), encoding="utf-8")
     print(f"Wrote assignment status to {status_path}")
     if args.ground_truth:
-        manifest = load_ground_truth(args.ground_truth)
-        coverage = assess_ground_truth_coverage(plan, manifest)
-        if not coverage["complete"]:
-            raise ValueError(f"Ground-truth manifest is incomplete: {coverage}")
         report = compare_plan_to_ground_truth(plan, manifest)
         report["ground_truth_coverage"] = coverage
         if report["metric_summary"]["metric_count"] == 0:

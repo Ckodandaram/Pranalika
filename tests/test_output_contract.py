@@ -179,6 +179,37 @@ class TestPropertyPlanContract(unittest.TestCase):
             output_file.unlink(missing_ok=True)
             benchmark_file.unlink(missing_ok=True)
 
+    def test_cli_rejects_incomplete_ground_truth_before_writing_plan(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            room_dir = Path(tmpdir) / "room_1"
+            room_dir.mkdir()
+            (room_dir / "img1.jpg").write_bytes(b"fake")
+            manifest = Path(tmpdir) / "ground_truth.json"
+            manifest.write_text(json.dumps({
+                "source": "incomplete survey",
+                "rooms": [{
+                    "id": "room_2",
+                    "ceiling_height_m": 2.7,
+                    "wall_lengths_m": [4.0],
+                }],
+            }), encoding="utf-8")
+            output_file = Path(tmpdir) / "plan.json"
+            coverage_file = Path(tmpdir) / "coverage.json"
+            import sys as _sys
+            _sys.argv = [
+                "property_scan",
+                "--tier", "photo",
+                "--input", str(room_dir.parent),
+                "--output", str(output_file),
+                "--ground-truth", str(manifest),
+                "--coverage-output", str(coverage_file),
+            ]
+            with self.assertRaisesRegex(ValueError, "Ground-truth manifest is incomplete"):
+                main()
+            self.assertFalse(output_file.exists())
+            self.assertTrue(coverage_file.exists())
+            self.assertFalse(json.loads(coverage_file.read_text(encoding="utf-8"))["complete"])
+
 
 if __name__ == "__main__":
     unittest.main()
