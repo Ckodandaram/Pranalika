@@ -932,6 +932,99 @@ def estimate_wall_surface_geometry(
     }
 
 
+def estimate_vertical_wall_planes(
+    profile: CaptureProfile,
+    sample_limit: int = 20,
+    iterations: int = 120,
+    distance_threshold_m: float = 0.06,
+    minimum_inliers: int = 100,
+    minimum_vertical_span_m: float = 0.3,
+) -> dict[str, object]:
+    """Fit qualified near-vertical wall planes from the registered cloud."""
+    floor = estimate_ransac_floor_plane_geometry(profile, sample_limit=sample_limit)
+    pairs, skipped_frames = _depth_odometry_pairs(profile, sample_limit)
+    if not floor["plane_found"] or not pairs or not profile.camera_matrix:
+        return {"planes_found": 0, "matched_frame_count": len(pairs), "skipped_frame_count": skipped_frames, "planes": []}
+
+    fx, fy = profile.camera_matrix[0][0], profile.camera_matrix[1][1]
+    cx, cy = profile.camera_matrix[0][2], profile.camera_matrix[1][2]
+    normal = np.array([float(floor["normal_x"]), float(floor["normal_y"]), float(floor["normal_z"])], dtype=np.float32)
+    normal /= max(float(np.linalg.norm(normal)), 1e-8)
+    floor_point = np.array([0.0, float(floor["floor_height_m"]), 0.0], dtype=np.float32)
+    clouds: list[np.ndarray] = []
+    for path, pose in pairs:
+        depth_mm = np.asarray(Image.open(path), dtype=np.float32)
+        valid, _ = _confidence_filtered_mask(profile, path, depth_mm)
+        if not np.any(valid):
+            continue
+        rows, columns = np.indices(depth_mm.shape, dtype=np.float32)
+        z_m = depth_mm[valid] * 0.001
+        x_m = (columns[valid] - cx) * z_m / fx
+        y_m = (rows[valid] - cy) * z_m / fy
+        quaternion = tuple(float(pose.get(name, 0.0)) for name in ("qx", "qy", "qz", "qw"))
+        if quaternion[3] == 0.0 and quaternion[:3] == (0.0, 0.0, 0.0):
+            quaternion = (0.0, 0.0, 0.0, 1.0)
+        rx, ry, rz = _rotate_points_by_quaternion(x_m, y_m, z_m, quaternion)
+        clouds.append(np.column_stack((rx + float(pose["x"]), ry + float(pose["y"]), rz + float(pose["z"]))))
+    if not clouds:
+        return {"planes_found": 0, "matched_frame_count": len(pairs), "skipped_frame_count": skipped_frames, "planes": []}
+
+    cloud = np.concatenate(clouds)
+    height = cloud @ normal + float(floor["plane_offset"])
+    candidate = cloud[(height >= 0.15) & (height <= 3.5)]
+    if candidate.shape[0] < minimum_inliers:
+        return {"planes_found": 0, "matched_frame_count": len(pairs), "skipped_frame_count": skipped_frames, "planes": []}
+
+    remaining = candidate
+    planes: list[dict[str, object]] = []
+    sample_indices = np.linspace(0, remaining.shape[0] - 1, min(6000, remaining.shape[0]), dtype=int)
+    for _ in range(4):
+        if remaining.shape[0] < minimum_inliers:
+            break
+        sample = remaining[sample_indices[sample_indices < remaining.shape[0]]]
+        best: tuple[np.ndarray, float, np.ndarray] | None = None
+        for iteration in range(max(1, iterations)):
+            indices = [(iteration * 53) % sample.shape[0], (iteration * 53 + 97) % sample.shape[0], (iteration * 53 + 181) % sample.shape[0]]
+            if len(set(indices)) < 3:
+                continue
+            first, second, third = sample[indices]
+            plane_normal = np.cross(second - first, third - first)
+            norm = float(np.linalg.norm(plane_normal))
+            if norm <= 1e-8:
+                continue
+            plane_normal /= norm
+            if abs(float(np.dot(plane_normal, normal))) > 0.25:
+                continue
+            offset = -float(np.dot(plane_normal, first))
+            inliers = np.abs(remaining @ plane_normal + offset) <= distance_threshold_m
+            if best is None or int(inliers.sum()) > int(best[2].sum()):
+                best = (plane_normal, offset, inliers)
+        if best is None or int(best[2].sum()) < minimum_inliers:
+            break
+        plane_normal, offset, inliers = best
+        points = remaining[inliers]
+        vertical = points @ normal + float(floor["plane_offset"])
+        span = float(np.percentile(vertical, 98) - np.percentile(vertical, 2))
+        if span >= minimum_vertical_span_m:
+            residual = float(np.mean(np.abs(points @ plane_normal + offset)))
+            planes.append({
+                "normal": [round(float(value), 5) for value in plane_normal],
+                "offset": round(offset, 5),
+                "inliers": int(points.shape[0]),
+                "vertical_span_m": round(span, 4),
+                "mean_residual_m": round(residual, 5),
+            })
+        remaining = remaining[~inliers]
+        sample_indices = np.linspace(0, remaining.shape[0] - 1, min(6000, remaining.shape[0]), dtype=int) if remaining.size else np.array([], dtype=int)
+
+    return {
+        "planes_found": len(planes),
+        "matched_frame_count": len(pairs),
+        "skipped_frame_count": skipped_frames,
+        "planes": planes,
+    }
+
+
 def _safe_image_stats(depth_dir: Path) -> tuple[float, float, float]:
     files = sorted(depth_dir.glob("*.png"))
     if not files:
@@ -1023,6 +1116,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
     ransac_floor_geometry = estimate_ransac_floor_plane_geometry(profile)
     footprint_geometry = estimate_floor_aligned_footprint(profile)
     wall_geometry = estimate_wall_surface_geometry(profile)
+    wall_planes = estimate_vertical_wall_planes(profile)
     return {
         "capture_name": profile.name,
         "scan_type": metrics.capture_type,
@@ -1040,6 +1134,7 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
         "ransac_floor_plane_geometry": ransac_floor_geometry,
         "floor_aligned_footprint": footprint_geometry,
         "wall_surface_geometry": wall_geometry,
+        "vertical_wall_planes": wall_planes,
         "notes": metrics.notes,
     }
 

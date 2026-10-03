@@ -12,6 +12,7 @@ from property_scan.data_loader import (
     estimate_floor_plane_geometry,
     estimate_floor_aligned_footprint,
     estimate_wall_surface_geometry,
+    estimate_vertical_wall_planes,
     estimate_ransac_floor_plane_geometry,
     estimate_translated_depth_geometry,
     summarize_capture_profile,
@@ -133,6 +134,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         ransac_floor_geometry = estimate_ransac_floor_plane_geometry(session)
         footprint_geometry = estimate_floor_aligned_footprint(session)
         wall_geometry = estimate_wall_surface_geometry(session)
+        wall_planes = estimate_vertical_wall_planes(session)
         area_m2 = round(metrics.estimated_floor_area_m2, 2)
         ceiling_height = round(metrics.estimated_ceiling_height_m, 2)
 
@@ -198,6 +200,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     {"item": "wall_surface_vertical_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_vertical_extent_m"]), 3), "unit": "m"},
                     {"item": "wall_surface_u_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_horizontal_u_extent_m"]), 3), "unit": "m"},
                     {"item": "wall_surface_v_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_horizontal_v_extent_m"]), 3), "unit": "m"},
+                    {"item": "vertical_wall_plane_count", "surface": "walls", "quantity": float(wall_planes["planes_found"]), "unit": "planes"},
                 ],
                 adjacency=[],
             )
