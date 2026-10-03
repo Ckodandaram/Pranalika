@@ -943,8 +943,18 @@ def estimate_vertical_wall_planes(
     """Fit qualified near-vertical wall planes from the registered cloud."""
     floor = estimate_ransac_floor_plane_geometry(profile, sample_limit=sample_limit)
     pairs, skipped_frames = _depth_odometry_pairs(profile, sample_limit)
+    empty_result = {
+        "planes_found": 0,
+        "matched_frame_count": len(pairs),
+        "skipped_frame_count": skipped_frames,
+        "candidate_point_count": 0,
+        "best_candidate_inliers": 0,
+        "best_candidate_vertical_span_m": 0.0,
+        "best_candidate_residual_m": 0.0,
+        "planes": [],
+    }
     if not floor["plane_found"] or not pairs or not profile.camera_matrix:
-        return {"planes_found": 0, "matched_frame_count": len(pairs), "skipped_frame_count": skipped_frames, "planes": []}
+        return empty_result
 
     fx, fy = profile.camera_matrix[0][0], profile.camera_matrix[1][1]
     cx, cy = profile.camera_matrix[0][2], profile.camera_matrix[1][2]
@@ -967,16 +977,20 @@ def estimate_vertical_wall_planes(
         rx, ry, rz = _rotate_points_by_quaternion(x_m, y_m, z_m, quaternion)
         clouds.append(np.column_stack((rx + float(pose["x"]), ry + float(pose["y"]), rz + float(pose["z"]))))
     if not clouds:
-        return {"planes_found": 0, "matched_frame_count": len(pairs), "skipped_frame_count": skipped_frames, "planes": []}
+        return empty_result
 
     cloud = np.concatenate(clouds)
     height = cloud @ normal + float(floor["plane_offset"])
     candidate = cloud[(height >= 0.15) & (height <= 3.5)]
+    empty_result["candidate_point_count"] = int(candidate.shape[0])
     if candidate.shape[0] < minimum_inliers:
-        return {"planes_found": 0, "matched_frame_count": len(pairs), "skipped_frame_count": skipped_frames, "planes": []}
+        return empty_result
 
     remaining = candidate
     planes: list[dict[str, object]] = []
+    best_candidate_inliers = 0
+    best_candidate_vertical_span = 0.0
+    best_candidate_residual = 0.0
     sample_indices = np.linspace(0, remaining.shape[0] - 1, min(6000, remaining.shape[0]), dtype=int)
     for _ in range(4):
         if remaining.shape[0] < minimum_inliers:
@@ -1005,8 +1019,12 @@ def estimate_vertical_wall_planes(
         points = remaining[inliers]
         vertical = points @ normal + float(floor["plane_offset"])
         span = float(np.percentile(vertical, 98) - np.percentile(vertical, 2))
+        residual = float(np.mean(np.abs(points @ plane_normal + offset)))
+        if int(points.shape[0]) > best_candidate_inliers:
+            best_candidate_inliers = int(points.shape[0])
+            best_candidate_vertical_span = span
+            best_candidate_residual = residual
         if span >= minimum_vertical_span_m:
-            residual = float(np.mean(np.abs(points @ plane_normal + offset)))
             planes.append({
                 "normal": [round(float(value), 5) for value in plane_normal],
                 "offset": round(offset, 5),
@@ -1021,6 +1039,10 @@ def estimate_vertical_wall_planes(
         "planes_found": len(planes),
         "matched_frame_count": len(pairs),
         "skipped_frame_count": skipped_frames,
+        "candidate_point_count": int(candidate.shape[0]),
+        "best_candidate_inliers": best_candidate_inliers,
+        "best_candidate_vertical_span_m": round(best_candidate_vertical_span, 4),
+        "best_candidate_residual_m": round(best_candidate_residual, 5),
         "planes": planes,
     }
 

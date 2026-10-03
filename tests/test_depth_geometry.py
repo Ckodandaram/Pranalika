@@ -94,6 +94,8 @@ class TestDepthGeometry(unittest.TestCase):
         result = estimate_vertical_wall_planes(detect_capture_profile(root))
         self.assertGreaterEqual(result["planes_found"], 0)
         self.assertEqual(result["matched_frame_count"], 20)
+        self.assertIn("candidate_point_count", result)
+        self.assertIn("best_candidate_inliers", result)
         for plane in result["planes"]:
             self.assertGreater(plane["inliers"], 100)
             self.assertGreater(plane["vertical_span_m"], 0.3)
