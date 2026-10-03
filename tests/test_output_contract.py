@@ -28,6 +28,8 @@ class TestPropertyPlanContract(unittest.TestCase):
             payload = plan.to_dict()
             self.assertIn("rooms", payload)
             self.assertIn("whole_property_connections", payload)
+            self.assertIn("stitching_notes", payload)
+            self.assertTrue(any("stitching connected=True" in note for note in payload["stitching_notes"]))
             self.assertGreater(len(payload["rooms"]), 0)
             self.assertEqual(payload["capture_tier"], "photo")
 

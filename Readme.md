@@ -85,3 +85,7 @@ Whole-property stitching now validates room-link drift before declaring the
 layout connected. Links above the 0.25 m default drift threshold are rejected,
 and the validator reports connected components and rejected edges instead of
 silently averaging disconnected rooms into one property layout.
+
+Photo plans now include this stitching result in `stitching_notes` and
+`layout_drift_m`; the hallway chain remains an inferred connection until
+overlap or doorway evidence is available.

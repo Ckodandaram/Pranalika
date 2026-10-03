@@ -18,6 +18,7 @@ from property_scan.data_loader import (
     estimate_translated_depth_geometry,
     summarize_capture_profile,
 )
+from property_scan.stitching import stitch_room_graph, validate_room_graph
 
 _IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 _ROOM_TYPE_BASELINES = {
@@ -28,6 +29,34 @@ _ROOM_TYPE_BASELINES = {
     "hall": {"area": 7.5, "ceiling": 2.72, "aspect": 1.65, "door_width": 0.90, "door_height": 2.08, "window_width": 0.90},
     "default": {"area": 12.0, "ceiling": 2.70, "aspect": 1.25, "door_width": 0.85, "door_height": 2.05, "window_width": 1.00},
 }
+
+
+def _property_stitching(rooms: list[Room]) -> tuple[list[dict[str, str]], float, list[str]]:
+    room_ids = [room.id for room in rooms]
+    room_graph = stitch_room_graph(
+        room_ids,
+        [
+            (room_ids[index], room_ids[index + 1], "hallway")
+            for index in range(max(0, len(room_ids) - 1))
+        ],
+    )
+    validation = validate_room_graph(room_ids, room_graph)
+    connections = [
+        {
+            "from": edge.from_room,
+            "to": edge.to_room,
+            "type": edge.connection_type,
+        }
+        for edge in room_graph
+    ]
+    notes = [
+        f"stitching connected={validation['connected']}",
+        f"stitching components={validation['component_count']}",
+        f"stitching layout drift={validation['layout_drift_m']:.4f}m",
+    ]
+    if not validation["passed"]:
+        notes.append("stitching quality gate failed; property layout requires overlap verification")
+    return connections, float(validation["layout_drift_m"]), notes
 
 
 def _iter_room_dirs(property_root: str | Path) -> Iterable[Path]:
@@ -234,10 +263,15 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
             )
         )
 
-    connections = []
-    for idx in range(1, len(rooms)):
-        connections.append({"from": f"room_{idx}", "to": f"room_{idx + 1}", "type": "hallway"})
-    return PropertyPlan(capture_tier="photo", property_id=property_id, rooms=rooms, whole_property_connections=connections)
+    connections, drift_m, stitching_notes = _property_stitching(rooms)
+    return PropertyPlan(
+        capture_tier="photo",
+        property_id=property_id,
+        rooms=rooms,
+        whole_property_connections=connections,
+        layout_drift_m=drift_m,
+        stitching_notes=stitching_notes,
+    )
 
 
 def build_photo_plan(property_root: str | Path, property_id: str = "property") -> PropertyPlan:
@@ -266,7 +300,12 @@ def build_photo_plan(property_root: str | Path, property_id: str = "property") -
         )
         rooms.append(room)
 
-    connections = []
-    for idx in range(1, len(rooms)):
-        connections.append({"from": f"room_{idx}", "to": f"room_{idx + 1}", "type": "hallway"})
-    return PropertyPlan(capture_tier="photo", property_id=property_id, rooms=rooms, whole_property_connections=connections)
+    connections, drift_m, stitching_notes = _property_stitching(rooms)
+    return PropertyPlan(
+        capture_tier="photo",
+        property_id=property_id,
+        rooms=rooms,
+        whole_property_connections=connections,
+        layout_drift_m=drift_m,
+        stitching_notes=stitching_notes,
+    )
