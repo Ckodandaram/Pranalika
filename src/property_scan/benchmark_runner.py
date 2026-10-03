@@ -15,8 +15,10 @@ from property_scan.data_loader import (
     confidence_quality_gate,
     detect_wall_opening_candidates,
     discover_capture_profiles,
+    estimate_floor_aligned_footprint,
     estimate_vertical_wall_planes,
     estimate_trajectory_consistency,
+    geometry_quality_gate,
     summarize_capture_profile,
 )
 
@@ -182,13 +184,38 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
         "before claiming the 2 cm assignment result."
     )
     opening_evidence = []
+    geometry_evidence = []
     quality = []
     for profile in profiles:
         metrics = summarize_capture_profile(profile)
         trajectory = estimate_trajectory_consistency(profile)
         confidence = confidence_quality_gate(metrics.confidence_coverage)
         wall_planes = estimate_vertical_wall_planes(profile)
+        footprint = estimate_floor_aligned_footprint(profile)
         candidates = detect_wall_opening_candidates(wall_planes)
+        boundary_area = float(footprint["footprint_area_m2"])
+        qualified_spans = sorted(
+            float(plane["horizontal_span_m"])
+            for plane in wall_planes["planes"]
+            if float(plane["horizontal_span_m"]) > 0.2
+        )
+        wall_area = round(qualified_spans[0] * qualified_spans[-1], 4) if len(qualified_spans) >= 4 else 0.0
+        disagreement = (
+            abs(boundary_area - wall_area) / max(boundary_area, wall_area)
+            if boundary_area > 0.0 and wall_area > 0.0
+            else None
+        )
+        geometry_evidence.append({
+            "capture": profile.name,
+            "footprint_area_m2": boundary_area,
+            "wall_evidence_area_m2": wall_area,
+            "area_disagreement_ratio": disagreement,
+            "gate": geometry_quality_gate(
+                metrics.confidence_coverage,
+                int(wall_planes["planes_found"]),
+                disagreement,
+            ),
+        })
         opening_evidence.append({
             "capture": profile.name,
             "candidate_count": len(candidates),
@@ -221,5 +248,15 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
             "captures": opening_evidence,
         },
         "metric_count": sum(item["candidate_count"] for item in opening_evidence),
+    }
+    results["geometry_evidence"] = {
+        "title": "Room geometry reconstruction evidence",
+        "summary": {
+            "validated_for_measurement_claims": all(
+                item["gate"]["passed"] for item in geometry_evidence
+            ),
+            "captures": geometry_evidence,
+        },
+        "metric_count": len(geometry_evidence),
     }
     return results

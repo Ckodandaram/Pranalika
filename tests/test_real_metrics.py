@@ -39,6 +39,8 @@ class TestRealSampleMetrics(unittest.TestCase):
         self.assertIn("validated_for_accuracy_claims", report["reconstruction_quality"]["summary"])
         self.assertIn("opening_evidence", report)
         self.assertFalse(report["opening_evidence"]["summary"]["validated_against_independent_ground_truth"])
+        self.assertIn("geometry_evidence", report)
+        self.assertFalse(report["geometry_evidence"]["summary"]["validated_for_measurement_claims"])
 
     def test_confidence_quality_gate_flags_low_coverage(self):
         self.assertTrue(confidence_quality_gate(0.99)["passed"])

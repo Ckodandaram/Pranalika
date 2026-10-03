@@ -124,3 +124,8 @@ accuracy claim.
 qualified wall planes, and no more than 25% footprint/wall-area disagreement.
 Only rooms passing all three checks are eligible for future metric promotion;
 the current sample captures remain diagnostic.
+
+The benchmark artifact also includes `geometry_evidence`, combining the same
+room-level gate with footprint area, wall-derived area, and disagreement ratio.
+The aggregate `validated_for_measurement_claims` flag remains false unless
+every evaluated capture passes.
