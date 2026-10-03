@@ -61,6 +61,8 @@ class Opening:
     width: Measurement
     height: Measurement
     location: str
+    source: str = "estimated"
+    validated: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -69,6 +71,8 @@ class Opening:
             "width": self.width.to_dict(),
             "height": self.height.to_dict(),
             "location": self.location,
+            "source": self.source,
+            "validated": self.validated,
         }
 
 

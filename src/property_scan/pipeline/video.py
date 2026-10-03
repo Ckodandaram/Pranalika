@@ -50,6 +50,7 @@ def build_video_plan(video_path: str | Path, property_id: str = "property") -> P
                     width=Measurement(value=0.9, unit="m", confidence=confidence_interval_for_tier("video", 0.9)),
                     height=Measurement(value=2.1, unit="m", confidence=confidence_interval_for_tier("video", 2.1)),
                     location="west",
+                    source="video prototype estimate",
                 )
             ],
             scope_items=[{"item": "plaster_patch", "surface": "ceiling", "quantity": 1.5, "unit": "m2"}],
@@ -73,6 +74,7 @@ def build_video_plan(video_path: str | Path, property_id: str = "property") -> P
                     width=Measurement(value=0.82, unit="m", confidence=confidence_interval_for_tier("video", 0.82)),
                     height=Measurement(value=2.08, unit="m", confidence=confidence_interval_for_tier("video", 2.08)),
                     location="east",
+                    source="video prototype estimate",
                 )
             ],
             scope_items=[],

@@ -54,6 +54,8 @@ class TestPropertyPlanContract(unittest.TestCase):
             room = plan.rooms[0]
             self.assertIn("floor_area", room.to_dict())
             self.assertGreater(len(room.openings), 0)
+            self.assertFalse(room.openings[0].validated)
+            self.assertIn("source", room.openings[0].to_dict())
             self.assertTrue(any("stitching connected=True" in note for note in plan.stitching_notes))
             self.assertIn("quality_gates", plan.to_dict())
 
@@ -65,6 +67,7 @@ class TestPropertyPlanContract(unittest.TestCase):
             self.assertIn("confidence", room.floor_area.to_dict())
             self.assertTrue(any("stitching quality gate passed=True" in note for note in plan.stitching_notes))
             self.assertFalse(plan.to_dict()["measurement_claims_validated"])
+            self.assertFalse(plan.rooms[0].openings[0].validated)
 
     def test_cli_writes_json(self):
         with tempfile.TemporaryDirectory() as tmpdir:

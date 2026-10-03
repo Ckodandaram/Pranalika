@@ -101,6 +101,7 @@ def _estimate_openings(room_dir: Path, room_type: str, image_count: int) -> list
                 width=Measurement(value=round(baseline["door_width"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_width"])),
                 height=Measurement(value=round(baseline["door_height"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_height"])),
                 location="south" if idx == 0 else "east",
+                source="room baseline heuristic",
             )
         )
     for idx in range(window_count):
@@ -111,6 +112,7 @@ def _estimate_openings(room_dir: Path, room_type: str, image_count: int) -> list
                 width=Measurement(value=round(baseline["window_width"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["window_width"])),
                 height=Measurement(value=1.15, unit="m", confidence=confidence_interval_for_tier("photo", 1.15)),
                 location="north" if idx == 0 else "west",
+                source="room baseline heuristic",
             )
         )
     if not openings and image_count > 0:
@@ -121,6 +123,7 @@ def _estimate_openings(room_dir: Path, room_type: str, image_count: int) -> list
                 width=Measurement(value=round(baseline["door_width"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_width"])),
                 height=Measurement(value=round(baseline["door_height"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_height"])),
                 location="south",
+                source="room baseline heuristic",
             )
         )
     return openings
@@ -205,6 +208,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                 width=Measurement(value=round(baseline["door_width"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_width"])),
                 height=Measurement(value=round(baseline["door_height"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_height"])),
                 location="south",
+                source="room baseline heuristic",
             )
         ]
         if session.frame_count > 3000:
@@ -215,6 +219,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     width=Measurement(value=round(baseline["window_width"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["window_width"])),
                     height=Measurement(value=1.2, unit="m", confidence=confidence_interval_for_tier("photo", 1.2)),
                     location="north",
+                    source="room baseline heuristic",
                 )
             )
 

@@ -29,6 +29,7 @@ def build_lidar_plan(lidar_root: str | Path, property_id: str = "property") -> P
                     width=Measurement(value=1.20, unit="m", confidence=confidence_interval_for_tier("lidar", 1.20)),
                     height=Measurement(value=1.25, unit="m", confidence=confidence_interval_for_tier("lidar", 1.25)),
                     location="north",
+                    source="LiDAR prototype estimate",
                 )
             ],
             damage=[
@@ -62,6 +63,7 @@ def build_lidar_plan(lidar_root: str | Path, property_id: str = "property") -> P
                     width=Measurement(value=0.95, unit="m", confidence=confidence_interval_for_tier("lidar", 0.95)),
                     height=Measurement(value=2.12, unit="m", confidence=confidence_interval_for_tier("lidar", 2.12)),
                     location="west",
+                    source="LiDAR prototype estimate",
                 )
             ],
             damage=[],

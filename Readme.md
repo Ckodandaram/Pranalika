@@ -147,3 +147,8 @@ ground-truth gate result. `measurement_claims_validated` becomes true only
 when the independent comparison, stitching, and room-geometry gates all pass.
 Proxy benchmark reports include explicit provenance showing that they are not
 independent ground truth.
+
+Every emitted opening now includes `source` and `validated` fields. Current
+photo, video, and LiDAR baseline openings are explicitly marked as estimates;
+wall-support gap candidates remain separate evidence until an opening detector
+and independent measurements validate them.
