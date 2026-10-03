@@ -155,6 +155,11 @@ trajectory, and room-geometry gates pass. The blockers and next action are
 serialized explicitly so a proxy benchmark cannot be mistaken for an accuracy
 claim.
 
+Proxy benchmark artifacts use schema version `1.2.0` and retain every
+per-measurement result, not only aggregate counts. The artifact validator
+rejects missing metric details or provenance that incorrectly claims independent
+ground truth before the JSON is written.
+
 When an independent ground-truth manifest is supplied, the CLI now validates
 the generated plan before comparison and updates the persisted plan with the
 ground-truth gate result. `measurement_claims_validated` becomes true only

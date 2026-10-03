@@ -60,8 +60,35 @@ class BenchmarkSuite:
                 "title": report.title,
                 "summary": report.summary_with_metrics(),
                 "metric_count": len(report.metrics),
+                "metrics": [metric.to_dict() for metric in report.metrics],
             }
         return results
+
+
+def validate_assignment_benchmark_report(report: dict[str, Any]) -> None:
+        """Reject incomplete proxy benchmark artifacts before they are persisted."""
+        required_cases = {"opening_width", "ceiling_height", "wall_length", "repeatability"}
+        missing_cases = required_cases - set(report)
+        if missing_cases:
+            raise ValueError(f"assignment benchmark is missing cases: {sorted(missing_cases)}")
+        schema = report.get("report_schema_version", {}).get("value")
+        if schema != "1.2.0":
+            raise ValueError("assignment benchmark has an unsupported report schema version")
+        provenance = report.get("report_provenance")
+        if not isinstance(provenance, dict) or not provenance.get("independent_ground_truth") is False:
+            raise ValueError("proxy benchmark provenance must declare independent_ground_truth=false")
+        readiness = report.get("assignment_readiness")
+        if not isinstance(readiness, dict):
+            raise ValueError("assignment benchmark requires assignment_readiness")
+        for key in ("ready", "validated_against_independent_ground_truth", "blockers", "next_action"):
+            if key not in readiness:
+                raise ValueError(f"assignment readiness is missing {key}")
+        if readiness["validated_against_independent_ground_truth"] is not False:
+            raise ValueError("proxy benchmark readiness cannot claim independent ground truth")
+        for case_name in required_cases:
+            case = report[case_name]
+            if not isinstance(case.get("metrics"), list):
+                raise ValueError(f"benchmark case {case_name} requires metric details")
 
 
 def _build_real_data_cases(data_root: Path) -> list[BenchmarkCase]:
@@ -290,4 +317,6 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
         "blockers": blockers,
         "next_action": "capture independent wall, opening, and ceiling measurements and rerun the benchmark",
     }
+    results["report_schema_version"] = {"value": "1.2.0"}
+    validate_assignment_benchmark_report(results)
     return results

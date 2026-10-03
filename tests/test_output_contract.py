@@ -167,6 +167,7 @@ class TestPropertyPlanContract(unittest.TestCase):
             self.assertIn("report_provenance", report)
             self.assertIn("assignment_readiness", report)
             self.assertFalse(report["assignment_readiness"]["ready"])
+            self.assertIn("metrics", report["opening_width"])
         finally:
             output_file.unlink(missing_ok=True)
             benchmark_file.unlink(missing_ok=True)

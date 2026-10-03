@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from property_scan.ground_truth import compare_plan_to_ground_truth, load_ground_truth
-from property_scan.benchmark_runner import run_assignment_benchmark
+from property_scan.benchmark_runner import run_assignment_benchmark, validate_assignment_benchmark_report
 from property_scan.pipeline import build_lidar_plan, build_photo_plan, build_video_plan
 from property_scan.common.output_contract import validate_plan_contract
 
@@ -61,6 +61,7 @@ def main() -> int:
         if args.tier != "photo":
             raise ValueError("--benchmark-output without --ground-truth is supported for the photo data root only")
         report = run_assignment_benchmark(args.input)
+        validate_assignment_benchmark_report(report)
         benchmark_path = Path(args.benchmark_output)
         benchmark_path.parent.mkdir(parents=True, exist_ok=True)
         benchmark_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
