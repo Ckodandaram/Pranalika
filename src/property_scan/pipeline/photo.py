@@ -19,6 +19,8 @@ from property_scan.data_loader import (
     estimate_translated_depth_geometry,
     summarize_capture_profile,
     estimate_arkitscenes_mesh_ceiling,
+    segment_capture_room_components,
+    validate_wall_opening_candidates,
 )
 from property_scan.stitching import stitch_room_graph, validate_room_graph
 
@@ -178,7 +180,9 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         footprint_geometry = estimate_floor_aligned_footprint(session)
         wall_geometry = estimate_wall_surface_geometry(session)
         wall_planes = estimate_vertical_wall_planes(session)
-        opening_candidates = detect_wall_opening_candidates(wall_planes)
+        raw_opening_candidates = detect_wall_opening_candidates(wall_planes)
+        opening_candidates = validate_wall_opening_candidates(wall_planes, raw_opening_candidates)
+        room_components = segment_capture_room_components(session)
         mesh_ceiling = estimate_arkitscenes_mesh_ceiling(session.root)
         area_m2 = round(metrics.estimated_floor_area_m2, 2)
         ceiling_height = round(metrics.estimated_ceiling_height_m, 2)
@@ -343,8 +347,18 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     {"item": "wall_surface_u_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_horizontal_u_extent_m"]), 3), "unit": "m"},
                     {"item": "wall_surface_v_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_horizontal_v_extent_m"]), 3), "unit": "m"},
                     {"item": "vertical_wall_plane_count", "surface": "walls", "quantity": float(wall_planes["planes_found"]), "unit": "planes"},
-                    {"item": "wall_opening_candidate_count", "surface": "openings", "quantity": float(len(opening_candidates)), "unit": "candidates"},
+                    {"item": "wall_opening_candidate_count", "surface": "openings", "quantity": float(len(raw_opening_candidates)), "unit": "candidates"},
+                    {"item": "validated_opening_count", "surface": "openings", "quantity": float(len(opening_candidates)), "unit": "validated_candidates"},
                     {"item": "opening_measurement_source", "surface": "openings", "quantity": 1.0 if opening_candidates else 0.0, "unit": "registered_wall_gap"},
+                    {
+                        "item": "room_component_segmentation",
+                        "surface": "room",
+                        "quantity": float(room_components["component_count"]),
+                        "unit": "components",
+                        "ambiguous": bool(room_components["ambiguous"]),
+                        "evidence": "trajectory discontinuity segmentation",
+                        "validated": False,
+                    },
                     *[
                         {
                             "item": "wall_opening_candidate",
@@ -357,7 +371,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                             "confidence": float(candidate["confidence"]),
                             "evidence": str(candidate["evidence"]),
                         }
-                        for candidate in opening_candidates
+                        for candidate in raw_opening_candidates
                     ],
                     {"item": "wall_length_source", "surface": "walls", "quantity": 1.0 if len(qualified_wall_lengths) >= 4 else 0.0, "unit": wall_length_source},
                 ],

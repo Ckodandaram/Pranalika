@@ -127,6 +127,11 @@ def _depth_odometry_pairs(
         for pose in odometry
         if "frame" in pose
     }
+    pose_progress_by_frame = {
+        str(pose["frame"]).zfill(6): index / max(1, len(odometry) - 1)
+        for index, pose in enumerate(odometry)
+        if "frame" in pose
+    }
     pairs: list[tuple[Path, dict[str, float | str]]] = []
     skipped = 0
     for depth_path in depth_files:
@@ -135,7 +140,16 @@ def _depth_odometry_pairs(
         if pose is None:
             skipped += 1
             continue
-        pairs.append((depth_path, pose))
+        corrected_pose = dict(pose)
+        if len(odometry) >= 2:
+            first = np.array([float(odometry[0]["x"]), float(odometry[0]["y"]), float(odometry[0]["z"])])
+            last = np.array([float(odometry[-1]["x"]), float(odometry[-1]["y"]), float(odometry[-1]["z"])])
+            progress = pose_progress_by_frame.get(frame_id, 0.0)
+            correction = (last - first) * progress
+            corrected_pose["x"] = float(float(pose["x"]) - correction[0])
+            corrected_pose["y"] = float(float(pose["y"]) - correction[1])
+            corrected_pose["z"] = float(float(pose["z"]) - correction[2])
+        pairs.append((depth_path, corrected_pose))
     if len(pairs) <= sample_limit:
         return pairs, skipped
     sample_indices = np.linspace(0, len(pairs) - 1, sample_limit, dtype=int)
@@ -163,6 +177,9 @@ def _voxel_downsample(points: np.ndarray, voxel_size_m: float = 0.03) -> np.ndar
 def estimate_trajectory_consistency(profile: CaptureProfile) -> dict[str, float | bool]:
     odometry = _read_odometry(profile.root / "odometry.csv")
     if len(odometry) < 2:
+        opening_candidates = detect_wall_opening_candidates(wall_planes)
+        validated_openings = validate_wall_opening_candidates(wall_planes, opening_candidates)
+        room_components = segment_capture_room_components(profile)
         return {"has_trajectory": False, "path_length_m": 0.0, "return_error_m": 0.0, "consistent": False}
     first = np.array([float(odometry[0]["x"]), float(odometry[0]["y"]), float(odometry[0]["z"])])
     last = np.array([float(odometry[-1]["x"]), float(odometry[-1]["y"]), float(odometry[-1]["z"])])
@@ -177,7 +194,86 @@ def estimate_trajectory_consistency(profile: CaptureProfile) -> dict[str, float 
         "path_length_m": round(path_length, 4),
         "return_error_m": round(return_error, 4),
         "consistent": bool(return_error <= max(0.25, path_length * 0.1)),
+        "drift_correction_applied": bool(path_length > 0.0 and return_error > 0.0),
+        "drift_correction_m": round(return_error, 4),
     }
+
+
+def segment_capture_room_components(profile: CaptureProfile) -> dict[str, object]:
+    """Split a capture into trajectory components at large motion discontinuities.
+
+    This is a conservative segmentation stage. It separates disconnected
+    capture chunks, but does not invent room boundaries when the trajectory is
+    continuous and the scan lacks room-level labels.
+    """
+    odometry = _read_odometry(profile.root / "odometry.csv")
+    if len(odometry) < 2:
+        return {"component_count": 0, "components": [], "ambiguous": True}
+    distances = []
+    for previous, current in zip(odometry, odometry[1:]):
+        delta = np.array([
+            float(current["x"]) - float(previous["x"]),
+            float(current["y"]) - float(previous["y"]),
+            float(current["z"]) - float(previous["z"]),
+        ])
+        distances.append(float(np.linalg.norm(delta)))
+    threshold = max(0.35, float(np.percentile(distances, 95.0)) * 3.0)
+    breaks = [index + 1 for index, distance in enumerate(distances) if distance > threshold]
+    boundaries = [0, *breaks, len(odometry)]
+    components = [
+        {
+            "component_id": index + 1,
+            "start_frame": int(boundaries[index]),
+            "end_frame": int(boundaries[index + 1] - 1),
+            "frame_count": int(boundaries[index + 1] - boundaries[index]),
+        }
+        for index in range(len(boundaries) - 1)
+    ]
+    return {
+        "component_count": len(components),
+        "components": components,
+        "ambiguous": bool(len(components) == 1),
+        "break_threshold_m": round(threshold, 4),
+    }
+
+
+def validate_wall_opening_candidates(
+    wall_planes: dict[str, object],
+    candidates: list[dict[str, float | int | str]],
+    *,
+    minimum_vertical_span_m: float = 1.8,
+    minimum_confidence: float = 0.65,
+) -> list[dict[str, float | int | str | bool]]:
+    """Retain wall gaps with enough vertical and support evidence."""
+    validated = []
+    planes = wall_planes.get("planes", [])
+    for candidate in candidates:
+        plane_index = int(candidate["plane_index"])
+        if plane_index >= len(planes):
+            continue
+        plane = planes[plane_index]
+        vertical_span = float(plane.get("vertical_span_m", 0.0))
+        confidence = float(candidate.get("confidence", 0.0))
+        candidate = dict(candidate)
+        candidate.update({
+            "vertical_span_m": round(vertical_span, 4),
+            "multi_view_supported": bool(int(plane.get("inliers", 0)) >= 500),
+            "validated": bool(
+                vertical_span >= minimum_vertical_span_m
+                and confidence >= minimum_confidence
+                and int(plane.get("inliers", 0)) >= 500
+            ),
+            "validation_reason": (
+                "vertical span, support, and confidence gates passed"
+                if vertical_span >= minimum_vertical_span_m
+                and confidence >= minimum_confidence
+                and int(plane.get("inliers", 0)) >= 500
+                else "insufficient vertical span, multi-view support, or confidence"
+            ),
+        })
+        if candidate["validated"]:
+            validated.append(candidate)
+    return validated
 
 
 def detect_capture_profile(scan_root: str | Path) -> CaptureProfile:
@@ -1293,6 +1389,9 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
     footprint_geometry = estimate_floor_aligned_footprint(profile)
     wall_geometry = estimate_wall_surface_geometry(profile)
     wall_planes = estimate_vertical_wall_planes(profile)
+    opening_candidates = detect_wall_opening_candidates(wall_planes)
+    validated_openings = validate_wall_opening_candidates(wall_planes, opening_candidates)
+    room_components = segment_capture_room_components(profile)
     trajectory = estimate_trajectory_consistency(profile)
     return {
         "capture_name": profile.name,
@@ -1312,6 +1411,9 @@ def estimate_real_room_geometry(scan_root: str | Path) -> dict[str, float | str 
         "floor_aligned_footprint": footprint_geometry,
         "wall_surface_geometry": wall_geometry,
         "vertical_wall_planes": wall_planes,
+        "wall_opening_candidates": opening_candidates,
+        "validated_wall_openings": validated_openings,
+        "room_components": room_components,
         "trajectory_consistency": trajectory,
         "notes": metrics.notes,
     }

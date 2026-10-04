@@ -20,6 +20,8 @@ from property_scan.data_loader import (
     estimate_ransac_floor_plane_geometry,
     estimate_translated_depth_geometry,
     detect_wall_opening_candidates,
+    validate_wall_opening_candidates,
+    segment_capture_room_components,
 )
 
 
@@ -135,6 +137,25 @@ class TestDepthGeometry(unittest.TestCase):
             detect_wall_opening_candidates(result, maximum_gap_m=2.5),
             [],
         )
+
+    def test_opening_validation_requires_vertical_and_support_evidence(self):
+        wall_planes = {
+            "planes": [
+                {"horizontal_min_m": 0.0, "occupied_bins": [0, 1, 8, 9], "vertical_span_m": 2.0, "inliers": 800},
+                {"horizontal_min_m": 0.0, "occupied_bins": [0, 1, 8, 9], "vertical_span_m": 1.0, "inliers": 800},
+            ]
+        }
+        candidates = detect_wall_opening_candidates(wall_planes, minimum_gap_m=0.4)
+        validated = validate_wall_opening_candidates(wall_planes, candidates, minimum_confidence=0.3)
+        self.assertEqual(len(candidates), 2)
+        self.assertEqual(len(validated), 1)
+        self.assertTrue(validated[0]["validated"])
+
+    def test_room_component_segmentation_reports_continuous_capture_as_ambiguous(self):
+        root = ROOT / "data" / "single_scan_with_ceiling" / "c7d28f72c6"
+        result = segment_capture_room_components(detect_capture_profile(root))
+        self.assertGreaterEqual(result["component_count"], 1)
+        self.assertIn("ambiguous", result)
 
     def test_arkitscenes_mesh_ceiling_is_available_when_mesh_is_preserved(self):
         root = ROOT / "data" / "single_scan_with_ceiling" / "c7d28f72c6"

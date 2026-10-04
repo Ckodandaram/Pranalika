@@ -20,6 +20,7 @@ from property_scan.data_loader import (
     estimate_trajectory_consistency,
     geometry_quality_gate,
     summarize_capture_profile,
+    validate_wall_opening_candidates,
 )
 
 
@@ -273,6 +274,7 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
         wall_planes = estimate_vertical_wall_planes(profile)
         footprint = estimate_floor_aligned_footprint(profile)
         candidates = detect_wall_opening_candidates(wall_planes)
+        validated_candidates = validate_wall_opening_candidates(wall_planes, candidates)
         boundary_area = float(footprint["footprint_area_m2"])
         qualified_spans = sorted(
             float(plane["horizontal_span_m"])
@@ -299,7 +301,9 @@ def run_assignment_benchmark(data_root: str | Path) -> dict[str, dict[str, Any]]
         opening_evidence.append({
             "capture": profile.name,
             "candidate_count": len(candidates),
+            "validated_candidate_count": len(validated_candidates),
             "candidate_widths_m": [float(candidate["width_m"]) for candidate in candidates],
+            "validated_widths_m": [float(candidate["width_m"]) for candidate in validated_candidates],
             "candidates": candidates,
         })
         quality.append({
