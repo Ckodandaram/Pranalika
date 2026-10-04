@@ -18,6 +18,7 @@ from property_scan.data_loader import (
     estimate_ransac_floor_plane_geometry,
     estimate_translated_depth_geometry,
     summarize_capture_profile,
+    estimate_arkitscenes_mesh_ceiling,
 )
 from property_scan.stitching import stitch_room_graph, validate_room_graph
 
@@ -178,6 +179,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
         wall_geometry = estimate_wall_surface_geometry(session)
         wall_planes = estimate_vertical_wall_planes(session)
         opening_candidates = detect_wall_opening_candidates(wall_planes)
+        mesh_ceiling = estimate_arkitscenes_mesh_ceiling(session.root)
         area_m2 = round(metrics.estimated_floor_area_m2, 2)
         ceiling_height = round(metrics.estimated_ceiling_height_m, 2)
 
@@ -207,19 +209,49 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
             int(wall_planes["planes_found"]),
             area_disagreement_ratio,
         )
-        doors = [
-            Opening(
-                id=f"opening_{index}_door",
-                type="door",
-                width=Measurement(value=round(baseline["door_width"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_width"])),
-                height=Measurement(value=round(baseline["door_height"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_height"])),
-                location="south",
-                source="room baseline heuristic",
-                wall_index=0,
-                position_ratio=0.5,
+        doors: list[Opening] = []
+        if opening_candidates:
+            for candidate_index, candidate in enumerate(opening_candidates):
+                wall_index = int(candidate["plane_index"])
+                wall_min = float(wall_planes["planes"][wall_index]["horizontal_min_m"])
+                wall_span = float(wall_planes["planes"][wall_index]["horizontal_span_m"])
+                position_ratio = (
+                    (float(candidate["start_m"]) + float(candidate["end_m"])) * 0.5 - wall_min
+                ) / max(wall_span, 1e-6)
+                doors.append(
+                    Opening(
+                        id=f"opening_{index}_candidate_{candidate_index + 1}",
+                        type="door",
+                        width=Measurement(
+                            value=round(float(candidate["width_m"]), 3),
+                            unit="m",
+                            confidence=confidence_interval_for_tier("photo", float(candidate["width_m"])),
+                        ),
+                        height=Measurement(
+                            value=round(baseline["door_height"], 2),
+                            unit="m",
+                            confidence=confidence_interval_for_tier("photo", baseline["door_height"]),
+                        ),
+                        location=f"wall_{wall_index + 1}",
+                        source="registered wall-plane support gap",
+                        wall_index=wall_index,
+                        position_ratio=max(0.0, min(1.0, round(position_ratio, 4))),
+                    )
+                )
+        else:
+            doors.append(
+                Opening(
+                    id=f"opening_{index}_door",
+                    type="door",
+                    width=Measurement(value=round(baseline["door_width"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_width"])),
+                    height=Measurement(value=round(baseline["door_height"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["door_height"])),
+                    location="south",
+                    source="room baseline heuristic fallback",
+                    wall_index=0,
+                    position_ratio=0.5,
+                )
             )
-        ]
-        if session.frame_count > 3000:
+        if not opening_candidates and session.frame_count > 3000:
             doors.append(
                 Opening(
                     id=f"opening_{index}_window",
@@ -227,7 +259,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     width=Measurement(value=round(baseline["window_width"], 2), unit="m", confidence=confidence_interval_for_tier("photo", baseline["window_width"])),
                     height=Measurement(value=1.2, unit="m", confidence=confidence_interval_for_tier("photo", 1.2)),
                     location="north",
-                    source="room baseline heuristic",
+                    source="room baseline heuristic fallback",
                     wall_index=2,
                     position_ratio=0.5,
                 )
@@ -247,6 +279,14 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     {"item": "confidence_coverage", "surface": "room", "quantity": round(metrics.confidence_coverage, 3), "unit": "ratio"},
                     {"item": "confidence_quality_gate", "surface": "room", "quantity": 1.0 if confidence_quality["passed"] else 0.0, "unit": "passed"},
                     {"item": "confidence_minimum_coverage", "surface": "room", "quantity": float(confidence_quality["minimum_coverage"]), "unit": "ratio"},
+                    {
+                        "item": "ceiling_height_evidence",
+                        "surface": "ceiling",
+                        "quantity": float(mesh_ceiling["height_m"]) if mesh_ceiling["available"] else float(ceiling_height),
+                        "unit": "m",
+                        "source": mesh_ceiling["source"] if mesh_ceiling["available"] else "depth-range heuristic fallback",
+                        "validated": False,
+                    },
                     {"item": "depth_projected_x_extent", "surface": "room", "quantity": round(float(depth_geometry["x_extent_m"]), 3), "unit": "m"},
                     {"item": "depth_projected_y_extent", "surface": "room", "quantity": round(float(depth_geometry["y_extent_m"]), 3), "unit": "m"},
                     {"item": "depth_projected_z_extent", "surface": "room", "quantity": round(float(depth_geometry["z_extent_m"]), 3), "unit": "m"},
@@ -304,6 +344,7 @@ def _build_from_real_capture(property_root: Path, property_id: str) -> PropertyP
                     {"item": "wall_surface_v_extent", "surface": "walls", "quantity": round(float(wall_geometry["wall_horizontal_v_extent_m"]), 3), "unit": "m"},
                     {"item": "vertical_wall_plane_count", "surface": "walls", "quantity": float(wall_planes["planes_found"]), "unit": "planes"},
                     {"item": "wall_opening_candidate_count", "surface": "openings", "quantity": float(len(opening_candidates)), "unit": "candidates"},
+                    {"item": "opening_measurement_source", "surface": "openings", "quantity": 1.0 if opening_candidates else 0.0, "unit": "registered_wall_gap"},
                     *[
                         {
                             "item": "wall_opening_candidate",

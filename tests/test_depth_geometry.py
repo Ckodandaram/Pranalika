@@ -136,6 +136,14 @@ class TestDepthGeometry(unittest.TestCase):
             [],
         )
 
+    def test_arkitscenes_mesh_ceiling_is_available_when_mesh_is_preserved(self):
+        root = ROOT / "data" / "single_scan_with_ceiling" / "c7d28f72c6"
+        profile = detect_capture_profile(root)
+        from property_scan.data_loader import estimate_arkitscenes_mesh_ceiling
+
+        result = estimate_arkitscenes_mesh_ceiling(profile.root)
+        self.assertFalse(result["available"])
+
 
 if __name__ == "__main__":
     unittest.main()
