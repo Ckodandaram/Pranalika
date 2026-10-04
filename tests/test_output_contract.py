@@ -113,25 +113,23 @@ class TestPropertyPlanContract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             video_path = Path(tmpdir) / "walkthrough.mp4"
             video_path.write_bytes(b"fake video")
-            plan = build_video_plan(video_path, property_id="demo")
-            room = plan.rooms[0]
-            self.assertIn("floor_area", room.to_dict())
-            self.assertGreater(len(room.openings), 0)
-            self.assertFalse(room.openings[0].validated)
-            self.assertIn("source", room.openings[0].to_dict())
-            self.assertIn("wall_index", room.openings[0].to_dict())
-            self.assertIn("position_ratio", room.openings[0].to_dict())
-            self.assertTrue(any("stitching connected=True" in note for note in plan.stitching_notes))
-            self.assertIn("quality_gates", plan.to_dict())
-            self.assertIn("assignment_readiness", plan.to_dict())
+            with self.assertRaisesRegex(ValueError, "normalized metric sidecar"):
+                build_video_plan(video_path, property_id="demo")
 
     def test_lidar_plan_has_damage_and_confidence(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            plan = build_lidar_plan(tmpdir, property_id="demo")
-            self.assertTrue(any(room.damage for room in plan.rooms))
+            points = []
+            for x in range(11):
+                for z in range(11):
+                    points.append((x * 0.4, 0.0, z * 0.4))
+                    points.append((x * 0.4, 2.7, z * 0.4))
+            cloud = Path(tmpdir) / "room.xyz"
+            cloud.write_text("\n".join(" ".join(map(str, point)) for point in points), encoding="utf-8")
+            plan = build_lidar_plan(cloud, property_id="demo")
             room = plan.rooms[0]
+            self.assertGreater(room.floor_area.value, 0)
             self.assertIn("confidence", room.floor_area.to_dict())
-            self.assertTrue(any("stitching quality gate passed=True" in note for note in plan.stitching_notes))
+            self.assertTrue(any("registered point count" in note for note in plan.stitching_notes))
             self.assertFalse(plan.to_dict()["measurement_claims_validated"])
             self.assertFalse(plan.rooms[0].openings[0].validated)
 

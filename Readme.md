@@ -13,9 +13,9 @@ PYTHONPATH=src python -m property_scan --tier photo --input /path/to/property --
 ## What is included
 
 - a common output contract shared by all tiers
-- a photo pipeline skeleton for per-room folders
-- a video pipeline skeleton for walkthrough inputs
-- a LiDAR pipeline skeleton for depth/pose-driven data
+- a photo pipeline for per-room folders and calibrated depth captures
+- a video pipeline that reconstructs normalized metric depth/pose sidecars
+- a LiDAR pipeline that reconstructs metric room geometry from XYZ point clouds
 - a benchmark and capture protocol designed around the assignment
 - a technical report overlaying the architecture and drift strategy
 - a selected-stack strategy grounded in the sample repos: Room-Reconstruction-Demo, RoomPlanDemo, openPlan3D, and COLMAP
@@ -116,8 +116,13 @@ Photo plans now include this stitching result in `stitching_notes` and
 overlap or doorway evidence is available.
 
 Video and LiDAR plans expose the same connectivity and stitching quality
-status. This keeps the output contract consistent across capture tiers while
-retaining tier-specific drift estimates.
+status. Video input must be accompanied by a normalized metric sidecar containing
+`depth/` and `odometry.csv`; RGB-only video is rejected because COLMAP-style
+reconstruction provides relative scale unless calibrated scale metadata is also
+available. LiDAR input accepts ASCII or binary PLY, PCD, XYZ/PTS, CSV, NPY, and
+NPZ point clouds and derives floor bounds, wall lengths, and ceiling height from
+the registered metric cloud. Opening results from both tiers remain candidates
+until independently measured ground truth validates them.
 
 Benchmark output also includes `reconstruction_quality`. Accuracy summaries
 are accompanied by confidence-coverage and trajectory-consistency gates, and
